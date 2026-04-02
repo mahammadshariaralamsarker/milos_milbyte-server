@@ -55,11 +55,11 @@ npm run prisma:studio
 Copy `.env.example` to `.env` if needed. Default values are already set for local development:
 
 - `PORT=3000`
-- `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mikearagon?schema=public`
+- `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/milos_milbyte?schema=public`
 
 When running inside Docker Compose, the app uses:
 
-- `postgresql://postgres:postgres@postgres:5432/mikearagon?schema=public`
+- `postgresql://postgres:postgres@postgres:5432/milos_milbyte?schema=public`
 
 ## 5. API endpoints
 
