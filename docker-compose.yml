@@ -1,14 +1,14 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: milos_milbyte-postgres
+    container_name: milos_milbyte_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: milos_milbyte
     ports:
-      - '5437:5437'
+      - '5438:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,16 +21,33 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: milos_milbyte-api
+    container_name: milos_milbyte_api
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       PORT: 3000
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5437/milos_milbyte?schema=public
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/milos_milbyte?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - '3000:3000'
 
+  redis:
+    image: redis:7-alpine
+    container_name: milos_milbyte_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - redis_data:/data
+
 volumes:
   postgres_data:
+  redis_data:
