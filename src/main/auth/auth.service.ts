@@ -8,8 +8,7 @@ export class AuthService {
     return 'This action adds a new auth';
   }
 
-  findAll() {
-    return `This action returns all auth`;
+  findAll() { 
   }
 
   findOne(id: number) { 
