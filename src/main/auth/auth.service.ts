@@ -17,7 +17,7 @@ export class AuthService {
   }
 
   update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
+     
   }
 
   remove(id: number) {
