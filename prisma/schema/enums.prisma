@@ -3,3 +3,16 @@ enum UserRoles {
   ADMIN
   CLIENT
 }
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PENDING
+}
+
+enum PlanTier {
+  BASIC
+  STANDARD
+  PREMIUM
+}

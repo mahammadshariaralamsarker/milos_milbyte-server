@@ -18,5 +18,6 @@ import { DeployFilesModule } from '../deploy-files/deploy-files.module';
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthGuard, RolesGuard],
+  exports: [JwtModule],
 })
 export class AuthModule {}
