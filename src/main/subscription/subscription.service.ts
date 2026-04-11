@@ -268,8 +268,21 @@ export class SubscriptionService {
         latestInvoice,
       );
 
-      const subscription = await this.prisma.userSubscription.create({
-        data: {
+      const subscription = await this.prisma.userSubscription.upsert({
+        where: {
+          userId_planId: {
+            userId: userId,
+            planId: subscribeDto.planId,
+          },
+        },
+        update: {
+          status: SubscriptionStatus.PENDING,
+          stripeSubscriptionId: stripeSubscription.id,
+          currentPeriodStart: periodDates.currentPeriodStart,
+          currentPeriodEnd: periodDates.currentPeriodEnd,
+          cancelledAt: null,
+        },
+        create: {
           userId: userId,
           planId: subscribeDto.planId,
           status: SubscriptionStatus.PENDING,
