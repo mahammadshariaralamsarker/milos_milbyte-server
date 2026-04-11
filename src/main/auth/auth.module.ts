@@ -4,7 +4,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { DeployFilesModule } from '../deploy-files/deploy-files.module';
+import { DeployFilesModule } from '../../config/deploy-files/deploy-files.module';
 
 @Module({
   imports: [

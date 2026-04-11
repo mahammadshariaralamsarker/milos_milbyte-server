@@ -9,12 +9,8 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Request } from 'express';
 import { UserRoles } from '@prisma/client';
 import { SubscriptionService } from './subscription.service';
 import {
@@ -22,6 +18,8 @@ import {
   UpdateSubscriptionPlanDto,
   SubscribeUserDto,
   UpgradeSubscriptionDto,
+  AddPaymentMethodDto,
+  UpdatePaymentMethodDto,
 } from './dto/subscription.dto';
 import { AuthGuard } from 'src/main/auth/guards/auth.guard';
 import { RolesGuard } from 'src/main/auth/guards/roles.guard';
@@ -107,20 +105,89 @@ export class SubscriptionController {
     );
   }
 
+  @UseGuards(AuthGuard)
+  @Get('payment-methods')
+  @ApiOperation({ summary: 'Get current user payment methods from Stripe' })
+  @ApiBearerAuth()
+  async getPaymentMethods(@Req() req: AuthenticatedRequest) {
+    return await this.subscriptionService.getPaymentMethods(req.user.sub);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('payment-methods/setup-intent')
+  @ApiOperation({
+    summary: 'Create Stripe setup intent for first-time payment method add',
+  })
+  @ApiBearerAuth()
+  async createPaymentMethodSetupIntent(@Req() req: AuthenticatedRequest) {
+    return await this.subscriptionService.createPaymentMethodSetupIntent(
+      req.user.sub,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('payment-methods')
+  @ApiOperation({ summary: 'Add a new Stripe payment method for current user' })
+  @ApiBearerAuth()
+  async addPaymentMethod(
+    @Req() req: AuthenticatedRequest,
+    @Body() addPaymentMethodDto: AddPaymentMethodDto,
+  ) {
+    return await this.subscriptionService.addPaymentMethod(
+      req.user.sub,
+      addPaymentMethodDto,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('payment-methods/:paymentMethodId')
+  @ApiOperation({ summary: 'Update a Stripe payment method for current user' })
+  @ApiBearerAuth()
+  async updatePaymentMethod(
+    @Req() req: AuthenticatedRequest,
+    @Param('paymentMethodId') paymentMethodId: string,
+    @Body() updatePaymentMethodDto: UpdatePaymentMethodDto,
+  ) {
+    return await this.subscriptionService.updatePaymentMethod(
+      req.user.sub,
+      paymentMethodId,
+      updatePaymentMethodDto,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete('payment-methods/:paymentMethodId')
+  @ApiOperation({ summary: 'Remove a Stripe payment method from current user' })
+  @ApiBearerAuth()
+  async removePaymentMethod(
+    @Req() req: AuthenticatedRequest,
+    @Param('paymentMethodId') paymentMethodId: string,
+  ) {
+    return await this.subscriptionService.removePaymentMethod(
+      req.user.sub,
+      paymentMethodId,
+    );
+  }
+
   // webhook endpoint for Stripe to handle subscription events (e.g. payment success, cancellation)
   @Post('webhook')
   @ApiOperation({ summary: 'Stripe webhook endpoint for subscription events' })
-  async handleStripeWebhook(@Req() req: Request) {
+  async handleStripeWebhook(@Req() req: Request & { rawBody?: Buffer }) {
     const sig = req.headers['stripe-signature'] as string;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
 
     try {
-      //   const rest = await this.subscriptionService.handleStripeWebhook(
-      //     req.body,
-      //     sig,
-      //     webhookSecret,
-      //   );
-      //   return rest;
+      const rawBody = req.rawBody;
+
+      if (!rawBody) {
+        return { received: false, message: 'Raw body missing for webhook' };
+      }
+
+      return await this.subscriptionService.handleStripeWebhook(
+        rawBody,
+        sig,
+        webhookSecret,
+      );
     } catch (err) {
       console.error('Error handling Stripe webhook:', err);
       return { received: false };
@@ -147,16 +214,5 @@ export class SubscriptionController {
   @ApiBearerAuth()
   async cancelSubscription(@Req() req: AuthenticatedRequest) {
     return await this.subscriptionService.cancelSubscription(req.user.sub);
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('my-subscription')
-  @ApiOperation({ summary: 'Get user current subscription' })
-  @ApiBearerAuth()
-  async getMySubscription(@Req() req: AuthenticatedRequest) {
-    const subscription = await this.subscriptionService.getUserSubscription(
-      req.user.sub,
-    );
-    return subscription;
   }
 }

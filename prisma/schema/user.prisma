@@ -5,6 +5,7 @@ model User {
   password       String
   role           UserRoles            @default(CLIENT)
   profilePicture String?
+  stripeCustomerId String?
   subscriptions  UserSubscription[]
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt

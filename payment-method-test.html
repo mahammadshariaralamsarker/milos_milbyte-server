@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stripe Payment Test</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+      :root {
+        --bg: #08111f;
+        --panel: rgba(8, 17, 31, 0.82);
+        --border: rgba(148, 163, 184, 0.16);
+        --text: #e5eefb;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+        --accent2: #22c55e;
+        --warn: #f59e0b;
+        --danger: #ef4444;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(
+            circle at top left,
+            rgba(56, 189, 248, 0.22),
+            transparent 30%
+          ),
+          radial-gradient(
+            circle at top right,
+            rgba(34, 197, 94, 0.15),
+            transparent 28%
+          ),
+          linear-gradient(135deg, #020617 0%, #08111f 50%, #0f172a 100%);
+        padding: 28px 16px 40px;
+      }
+
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+      }
+
+      .hero {
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(30px, 4vw, 50px);
+        letter-spacing: -0.05em;
+      }
+
+      .subtitle {
+        margin: 0;
+        max-width: 900px;
+        line-height: 1.7;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 18px;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        padding: 20px;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+      }
+
+      h2 {
+        margin: 0 0 14px;
+        font-size: 20px;
+      }
+
+      .hint {
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      label {
+        display: block;
+        margin: 14px 0 8px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: rgba(15, 23, 42, 0.92);
+        color: var(--text);
+        padding: 13px 14px;
+        outline: none;
+      }
+
+      input:focus,
+      textarea:focus {
+        border-color: rgba(56, 189, 248, 0.8);
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
+      }
+
+      textarea {
+        min-height: 88px;
+        resize: vertical;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      button {
+        border: none;
+        border-radius: 14px;
+        padding: 12px 16px;
+        font-weight: 700;
+        cursor: pointer;
+        transition:
+          transform 0.15s ease,
+          opacity 0.15s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .primary {
+        background: linear-gradient(135deg, var(--accent), #7dd3fc);
+        color: #07111f;
+      }
+
+      .success {
+        background: linear-gradient(135deg, var(--accent2), #86efac);
+        color: #07150d;
+      }
+
+      .warning {
+        background: linear-gradient(135deg, var(--warn), #fcd34d);
+        color: #1f1300;
+      }
+
+      .ghost {
+        background: rgba(148, 163, 184, 0.12);
+        color: var(--text);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+      }
+
+      .danger {
+        background: linear-gradient(135deg, var(--danger), #fb7185);
+        color: #230406;
+      }
+
+      #card-element {
+        padding: 15px;
+        min-height: 52px;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+      }
+
+      .status {
+        margin-top: 16px;
+        white-space: pre-wrap;
+        line-height: 1.6;
+        font-size: 14px;
+      }
+
+      .ok {
+        color: #86efac;
+      }
+
+      .err {
+        color: #fca5a5;
+      }
+
+      .info {
+        color: #93c5fd;
+      }
+
+      .list {
+        margin: 0;
+        padding-left: 18px;
+        line-height: 1.8;
+      }
+
+      code {
+        background: rgba(148, 163, 184, 0.12);
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+
+      .small {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      @media (max-width: 960px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <section class="hero">
+        <h1>Stripe Test HTML</h1>
+        <p class="subtitle">
+          শুধু এই HTML file খুলে তুমি setup intent, payment method save, plan
+          subscribe, incomplete payment confirm, আর saved method list test করতে
+          পারবে. First time card add হলে Stripe থেকে <code>pm_...</code> id
+          confirm হওয়ার পরে পাওয়া যাবে.
+        </p>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Test Inputs</h2>
+          <p class="hint">
+            Backend endpoint: <code>http://localhost:3000</code> হলে default
+            রেখে দাও. অন্য হলে বদলে নাও.
+          </p>
+
+          <label for="apiBaseUrl">API Base URL</label>
+          <input id="apiBaseUrl" type="text" value="http://localhost:3000" />
+
+          <label for="jwtToken">JWT Token</label>
+          <textarea
+            id="jwtToken"
+            placeholder="Bearer token paste করো"
+          ></textarea>
+
+          <div class="row">
+            <div>
+              <label for="email">Email</label>
+              <input id="email" type="email" placeholder="user@example.com" />
+            </div>
+            <div>
+              <label for="name">Name</label>
+              <input id="name" type="text" placeholder="User Name" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="planId">Plan ID</label>
+              <input
+                id="planId"
+                type="number"
+                min="1"
+                placeholder="1"
+                value="1"
+              />
+            </div>
+            <div>
+              <label for="paymentMethodId">Existing Payment Method ID</label>
+              <input id="paymentMethodId" type="text" placeholder="pm_123..." />
+            </div>
+          </div>
+
+          <label>Card Details</label>
+          <div id="card-element"></div>
+
+          <div class="buttons">
+            <button class="primary" id="btnSetupIntent">
+              1) Create Setup Intent
+            </button>
+            <button class="success" id="btnSaveCard" disabled>
+              2) Save Card
+            </button>
+            <button class="warning" id="btnSubscribe">3) Subscribe Plan</button>
+            <button class="ghost" id="btnConfirmSubscription" disabled>
+              4) Confirm Subscription Payment
+            </button>
+            <button class="ghost" id="btnListMethods">Refresh Methods</button>
+          </div>
+
+          <p class="small">
+            Flow:
+            <br />
+            1. SetupIntent create
+            <br />
+            2. Stripe confirmCardSetup => paymentMethodId
+            <br />
+            3. Subscribe plan
+            <br />
+            4. If Stripe returns <code>clientSecret</code>, confirmCardPayment
+            দিয়ে payment complete করো
+          </p>
+
+          <div id="status" class="status info">Ready.</div>
+        </section>
+
+        <section class="card">
+          <h2>Saved Payment Methods</h2>
+          <p class="hint">
+            Backend route: <code>GET /subscriptions/payment-methods</code>
+          </p>
+          <ul id="methodsList" class="list">
+            <li>No methods loaded yet.</li>
+          </ul>
+
+          <h2 style="margin-top: 22px">Last Responses</h2>
+          <p class="hint">
+            Useful when subscription is <code>incomplete</code> in Stripe
+            Dashboard.
+          </p>
+          <pre
+            id="responseBox"
+            style="
+              white-space: pre-wrap;
+              margin: 0;
+              color: var(--text);
+              line-height: 1.6;
+            "
+          ></pre>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const STRIPE_PUBLISHABLE_KEY =
+        'pk_test_51TL8uWDGvIcX70lZLbpdlELOiSlufZovTbfkW9xHPMDIhyTtmBQ8j4reEFfSZZNOR57mh9926yjhzGa7WuPE1DYe0043eQ5MSv';
+      const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+      const elements = stripe.elements();
+      const card = elements.create('card', {
+        style: {
+          base: {
+            color: '#e5eefb',
+            fontFamily: 'Inter, system-ui, sans-serif',
+            fontSize: '16px',
+            '::placeholder': {
+              color: '#64748b',
+            },
+          },
+          invalid: {
+            color: '#fca5a5',
+          },
+        },
+      });
+      card.mount('#card-element');
+
+      const apiBaseUrl = document.getElementById('apiBaseUrl');
+      const jwtToken = document.getElementById('jwtToken');
+      const email = document.getElementById('email');
+      const name = document.getElementById('name');
+      const planId = document.getElementById('planId');
+      const paymentMethodIdInput = document.getElementById('paymentMethodId');
+      const status = document.getElementById('status');
+      const methodsList = document.getElementById('methodsList');
+      const responseBox = document.getElementById('responseBox');
+      const btnSetupIntent = document.getElementById('btnSetupIntent');
+      const btnSaveCard = document.getElementById('btnSaveCard');
+      const btnSubscribe = document.getElementById('btnSubscribe');
+      const btnConfirmSubscription = document.getElementById(
+        'btnConfirmSubscription',
+      );
+      const btnListMethods = document.getElementById('btnListMethods');
+
+      let setupClientSecret = '';
+      let setupIntentId = '';
+      let subscriptionClientSecret = '';
+      let currentSubscriptionId = '';
+      let currentCustomerId = '';
+
+      function setStatus(message, tone = 'info') {
+        status.className = `status ${tone}`;
+        status.textContent = message;
+      }
+
+      function showResponse(value) {
+        responseBox.textContent =
+          typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+      }
+
+      function baseUrl() {
+        return apiBaseUrl.value.trim().replace(/\/$/, '');
+      }
+
+      function authHeaders() {
+        const token = jwtToken.value.trim();
+        return token
+          ? {
+              Authorization: token.startsWith('Bearer ')
+                ? token
+                : `Bearer ${token}`,
+            }
+          : {};
+      }
+
+      function unwrapApiResponse(payload) {
+        if (!payload) return payload;
+        if (payload.data && payload.data.data) return payload.data.data;
+        if (payload.data) return payload.data;
+        return payload;
+      }
+
+      async function apiFetch(path, options = {}) {
+        const response = await fetch(`${baseUrl()}${path}`, {
+          ...options,
+          headers: {
+            ...authHeaders(),
+            ...(options.headers || {}),
+          },
+        });
+
+        const contentType = response.headers.get('content-type') || '';
+        const body = contentType.includes('application/json')
+          ? await response.json()
+          : await response.text();
+
+        if (!response.ok) {
+          const message =
+            body?.message || body?.error || body || 'Request failed';
+          throw new Error(
+            Array.isArray(message) ? message.join(', ') : message,
+          );
+        }
+
+        return body;
+      }
+
+      async function refreshMethods() {
+        setStatus('Loading payment methods...');
+        try {
+          const payload = await apiFetch('/subscriptions/payment-methods');
+          const data = unwrapApiResponse(payload);
+          const methods = data?.paymentMethods || [];
+          const defaultMethod = data?.defaultPaymentMethod || null;
+
+          if (!methods.length) {
+            methodsList.innerHTML = '<li>No payment methods found.</li>';
+          } else {
+            methodsList.innerHTML = methods
+              .map((method) => {
+                const brand = method.card?.brand || 'card';
+                const last4 = method.card?.last4 || '0000';
+                const isDefault =
+                  defaultMethod === method.id ? ' (default)' : '';
+                return `<li><strong>${method.id}</strong> - ${brand} **** ${last4}${isDefault}</li>`;
+              })
+              .join('');
+          }
+
+          showResponse(payload);
+          setStatus('Payment methods loaded.', 'ok');
+        } catch (error) {
+          setStatus(error.message, 'err');
+        }
+      }
+
+      btnSetupIntent.addEventListener('click', async () => {
+        btnSetupIntent.disabled = true;
+        try {
+          setStatus('Creating setup intent...');
+          const payload = await apiFetch(
+            '/subscriptions/payment-methods/setup-intent',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: email.value.trim(),
+                name: name.value.trim(),
+              }),
+            },
+          );
+
+          const data = unwrapApiResponse(payload);
+          currentCustomerId = data?.customerId || '';
+          setupIntentId = data?.setupIntentId || '';
+          setupClientSecret = data?.clientSecret || '';
+
+          paymentMethodIdInput.value = '';
+          btnSaveCard.disabled = !setupClientSecret;
+          showResponse(payload);
+
+          setStatus(
+            `SetupIntent ready.\ncustomerId: ${currentCustomerId || '-'}\nsetupIntentId: ${setupIntentId || '-'}\nNow confirm card with Save Card button.`,
+            'ok',
+          );
+        } catch (error) {
+          setStatus(error.message, 'err');
+        } finally {
+          btnSetupIntent.disabled = false;
+        }
+      });
+
+      btnSaveCard.addEventListener('click', async () => {
+        btnSaveCard.disabled = true;
+        try {
+          if (!setupClientSecret) {
+            throw new Error('First create SetupIntent.');
+          }
+
+          setStatus('Confirming card setup with Stripe...');
+          const result = await stripe.confirmCardSetup(setupClientSecret, {
+            payment_method: {
+              card,
+              billing_details: {
+                name: name.value.trim(),
+                email: email.value.trim(),
+              },
+            },
+          });
+
+          if (result.error) {
+            throw new Error(result.error.message);
+          }
+
+          const paymentMethodId = result.setupIntent?.payment_method;
+          if (!paymentMethodId) {
+            throw new Error('Stripe did not return paymentMethodId');
+          }
+
+          paymentMethodIdInput.value = paymentMethodId;
+          const payload = await apiFetch('/subscriptions/payment-methods', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paymentMethodId,
+              setAsDefault: true,
+            }),
+          });
+
+          showResponse(payload);
+          setStatus(
+            `Card saved successfully. paymentMethodId: ${paymentMethodId}`,
+            'ok',
+          );
+          await refreshMethods();
+        } catch (error) {
+          setStatus(error.message, 'err');
+        } finally {
+          btnSaveCard.disabled = false;
+        }
+      });
+
+      btnSubscribe.addEventListener('click', async () => {
+        btnSubscribe.disabled = true;
+        try {
+          const chosenPaymentMethodId = paymentMethodIdInput.value.trim();
+          if (!chosenPaymentMethodId) {
+            throw new Error('First save a payment method or paste a pm_ id.');
+          }
+
+          setStatus('Creating subscription...');
+          const payload = await apiFetch('/subscriptions/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              planId: Number(planId.value),
+              paymentMethodId: chosenPaymentMethodId,
+            }),
+          });
+
+          const data = unwrapApiResponse(payload);
+          currentSubscriptionId = data?.subscription?.id || '';
+          subscriptionClientSecret = data?.clientSecret || '';
+          showResponse(payload);
+
+          if (subscriptionClientSecret) {
+            btnConfirmSubscription.disabled = false;
+            setStatus(
+              `Subscription created. Payment still needs confirmation.\nsubscriptionId: ${currentSubscriptionId || '-'}\nclientSecret available. Click Confirm Subscription Payment.`,
+              'warning',
+            );
+          } else {
+            setStatus(
+              'Subscription created and no clientSecret returned.',
+              'ok',
+            );
+          }
+        } catch (error) {
+          setStatus(error.message, 'err');
+        } finally {
+          btnSubscribe.disabled = false;
+        }
+      });
+
+      btnConfirmSubscription.addEventListener('click', async () => {
+        btnConfirmSubscription.disabled = true;
+        try {
+          if (!subscriptionClientSecret) {
+            throw new Error(
+              'No subscription clientSecret found. Subscribe first.',
+            );
+          }
+
+          setStatus('Confirming subscription payment...');
+          const result = await stripe.confirmCardPayment(
+            subscriptionClientSecret,
+          );
+
+          if (result.error) {
+            throw new Error(result.error.message);
+          }
+
+          showResponse(result);
+          setStatus(
+            `Payment confirmed.\nPaymentIntent status: ${result.paymentIntent?.status || '-'}\nStripe dashboard should move from incomplete to active after webhook finishes.`,
+            'ok',
+          );
+        } catch (error) {
+          setStatus(error.message, 'err');
+        } finally {
+          btnConfirmSubscription.disabled = false;
+        }
+      });
+
+      btnListMethods.addEventListener('click', refreshMethods);
+
+      refreshMethods().catch(() => {});
+    </script>
+  </body>
+</html>

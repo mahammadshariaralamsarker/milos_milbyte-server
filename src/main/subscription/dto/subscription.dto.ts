@@ -5,7 +5,7 @@ import {
   IsNumber,
   IsOptional,
   IsEnum,
-  IsArray,
+  IsBoolean,
   MinLength,
 } from 'class-validator';
 
@@ -89,4 +89,33 @@ export class UpgradeSubscriptionDto {
   @ApiProperty({ example: 2, description: 'New plan ID to upgrade to' })
   @IsNumber()
   newPlanId!: number;
+}
+
+export class AddPaymentMethodDto {
+  @ApiProperty({
+    example: 'pm_123456789',
+    description: 'Stripe payment method id',
+  })
+  @IsString()
+  paymentMethodId!: string;
+
+  @ApiProperty({
+    example: true,
+    required: false,
+    description: 'Set this method as default for future invoices',
+  })
+  @IsOptional()
+  @IsBoolean()
+  setAsDefault?: boolean;
+}
+
+export class UpdatePaymentMethodDto {
+  @ApiProperty({
+    example: true,
+    required: false,
+    description: 'Set this method as default for future invoices',
+  })
+  @IsOptional()
+  @IsBoolean()
+  setAsDefault?: boolean;
 }
