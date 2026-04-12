@@ -16,3 +16,10 @@ enum PlanTier {
   STANDARD
   PREMIUM
 }
+
+enum HelpRequestStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}

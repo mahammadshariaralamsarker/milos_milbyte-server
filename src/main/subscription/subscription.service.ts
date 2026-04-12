@@ -16,6 +16,7 @@ import {
   UpdatePaymentMethodDto,
 } from './dto/subscription.dto';
 import { SubscriptionStatus } from '@prisma/client';
+import { SubscriptionPeriodService } from '../subscription-period/subscription-period.service';
 
 @Injectable()
 export class SubscriptionService {
@@ -24,6 +25,7 @@ export class SubscriptionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly stripeService: StripeService,
+    private readonly subscriptionPeriodService: SubscriptionPeriodService,
   ) {}
 
   private async resolveStripeCustomer(userId: number) {
@@ -50,28 +52,6 @@ export class SubscriptionService {
     });
 
     return { user, customerId: customer.id };
-  }
-
-  private resolvePeriodDatesFromStripeResponse(
-    stripeData: any,
-    invoiceData?: any,
-  ) {
-    const invoiceLine = invoiceData?.lines?.data?.[0];
-    const period = invoiceLine?.period;
-
-    const currentPeriodStart =
-      stripeData?.current_period_start ?? period?.start ?? null;
-    const currentPeriodEnd =
-      stripeData?.current_period_end ?? period?.end ?? null;
-
-    return {
-      currentPeriodStart: currentPeriodStart
-        ? new Date(currentPeriodStart * 1000)
-        : null,
-      currentPeriodEnd: currentPeriodEnd
-        ? new Date(currentPeriodEnd * 1000)
-        : null,
-    };
   }
 
   // =================== ADMIN: PLAN MANAGEMENT ===================
@@ -261,12 +241,15 @@ export class SubscriptionService {
       );
 
       const stripeData = stripeSubscription as any;
-      const latestInvoice = stripeData.latest_invoice as any;
-      const paymentIntent = latestInvoice?.payment_intent as any;
-      const periodDates = this.resolvePeriodDatesFromStripeResponse(
-        stripeData,
-        latestInvoice,
-      );
+      const paymentIntentData =
+        this.subscriptionPeriodService.getPaymentIntentFromSubscription(
+          stripeData,
+        );
+      const periodDates =
+        this.subscriptionPeriodService.resolvePeriodDatesFromStripeResponse(
+          stripeData,
+          paymentIntentData.latestInvoice,
+        );
 
       const subscription = await this.prisma.userSubscription.upsert({
         where: {
@@ -300,8 +283,8 @@ export class SubscriptionService {
           subscription,
           stripeSubscriptionId: stripeSubscription.id,
           stripeSubscriptionStatus: stripeSubscription.status,
-          paymentIntentStatus: paymentIntent?.status || null,
-          clientSecret: paymentIntent?.client_secret || null,
+          paymentIntentStatus: paymentIntentData.paymentIntentStatus,
+          clientSecret: paymentIntentData.clientSecret,
         },
       };
     } catch (error) {
@@ -579,10 +562,11 @@ export class SubscriptionService {
         const stripeSubscription =
           await this.stripeService.getSubscription(subscriptionId);
         const stripeData = stripeSubscription as any;
-        const periodDates = this.resolvePeriodDatesFromStripeResponse(
-          stripeData,
-          invoice,
-        );
+        const periodDates =
+          this.subscriptionPeriodService.resolvePeriodDatesFromStripeResponse(
+            stripeData,
+            invoice,
+          );
 
         await this.prisma.userSubscription.updateMany({
           where: { stripeSubscriptionId: subscriptionId },
@@ -627,7 +611,9 @@ export class SubscriptionService {
         const subscription = event.data.object as any;
         const stripeData = subscription as any;
         const periodDates =
-          this.resolvePeriodDatesFromStripeResponse(stripeData);
+          this.subscriptionPeriodService.resolvePeriodDatesFromStripeResponse(
+            stripeData,
+          );
 
         await this.prisma.userSubscription.updateMany({
           where: { stripeSubscriptionId: subscription.id },
