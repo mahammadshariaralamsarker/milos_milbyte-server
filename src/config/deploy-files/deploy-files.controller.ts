@@ -99,7 +99,7 @@ function createUploadOptions(
 function createUploadResponse(
   req: Request,
   file: Express.Multer.File,
-  folder: 'images' | 'documents' | 'profile-pictures',
+  folder: 'images' | 'documents',
 ) {
   if (!file) {
     throw new BadRequestException('File is required');
