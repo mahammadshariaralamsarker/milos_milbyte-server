@@ -5,9 +5,9 @@ import { Logger } from '@nestjs/common';
 const logger = new Logger('SeedSuperAdmin');
 
 export async function seedSuperAdmin(prisma: PrismaClient) {
-  const email = process.env.SUPERADMIN_EMAIL || 'superadmin@example.com';
+  const email = process.env.SUPERADMIN_EMAIL || 'admin@gmail.com';
   const name = process.env.SUPERADMIN_NAME || 'Super Admin';
-  const rawPassword = process.env.SUPERADMIN_PASSWORD || 'admin123456';
+  const rawPassword = process.env.SUPERADMIN_PASSWORD || '12345678';
 
   logger.log('Starting Super Admin seeding process...');
 
