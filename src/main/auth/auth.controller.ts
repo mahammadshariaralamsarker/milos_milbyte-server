@@ -18,6 +18,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfilePictureDto } from './dto/update-profile-picture.dto';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 type AuthenticatedRequest = Request & {
   user: {
@@ -49,6 +50,16 @@ export class AuthController {
   @Get('me')
   async getMe(@Req() req: AuthenticatedRequest) {
     return await this.authService.getMe(req.user.sub);
+  }
+
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @Get('change-profile-data')
+  async profileUpdate(
+    @Req() req: AuthenticatedRequest,
+    @Body() updateData: UpdateProfileDto,
+  ) {
+    return await this.authService.profileUpdate(req.user.sub, updateData);
   }
 
   @UseGuards(AuthGuard)

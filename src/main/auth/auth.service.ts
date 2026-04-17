@@ -19,6 +19,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfilePictureDto } from './dto/update-profile-picture.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class AuthService {
@@ -201,6 +202,32 @@ export class AuthService {
 
     return {
       message: 'Password reset successful',
+    };
+  }
+
+  async profileUpdate(userId: string, updateData: UpdateProfileDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: Number(userId) },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: Number(userId) },
+      data: {
+        name:
+          updateData.firstName && updateData.lastName
+            ? `${updateData.firstName} ${updateData.lastName}`
+            : user.name,
+        profilePicture: updateData.filename || user.profilePicture,
+      },
+    });
+
+    return {
+      message: 'Profile updated successfully',
+      user: this.sanitizeUser(updatedUser),
     };
   }
 
