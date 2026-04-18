@@ -28,20 +28,20 @@ export class DestinationController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create destination (Admin only)' })
   @Post()
-  create(@Body() createDestinationDto: CreateDestinationDto) {
-    return this.destinationService.create(createDestinationDto);
+  async create(@Body() createDestinationDto: CreateDestinationDto) {
+    return await this.destinationService.create(createDestinationDto);
   }
 
   @ApiOperation({ summary: 'Get all destinations (Public)' })
   @Get()
-  findAll() {
-    return this.destinationService.findAll();
+  async findAll() {
+    return await this.destinationService.findAll();
   }
 
   @ApiOperation({ summary: 'Get destination by id (Public)' })
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.destinationService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return await this.destinationService.findOne(id);
   }
 
   @UseGuards(AuthGuard, RolesGuard)
@@ -49,11 +49,11 @@ export class DestinationController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update destination (Admin only)' })
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDestinationDto: UpdateDestinationDto,
   ) {
-    return this.destinationService.update(id, updateDestinationDto);
+    return await this.destinationService.update(id, updateDestinationDto);
   }
 
   @UseGuards(AuthGuard, RolesGuard)
@@ -61,7 +61,7 @@ export class DestinationController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete destination (Admin only)' })
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.destinationService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    return await this.destinationService.remove(id);
   }
 }

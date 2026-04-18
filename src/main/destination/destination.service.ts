@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/config/prisma/prisma.service';
 import { CreateDestinationDto } from './dto/create-destination.dto';
 import { UpdateDestinationDto } from './dto/update-destination.dto';
@@ -8,6 +12,21 @@ export class DestinationService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createDestinationDto: CreateDestinationDto) {
+    const existing = await this.prisma.destination.findFirst({
+      where: {
+        AND: [
+          { name: createDestinationDto.name },
+          { location: createDestinationDto.location },
+        ],
+      },
+    });
+
+    if (existing) {
+      throw new ConflictException(
+        'Destination with this name and location already exists',
+      );
+    }
+
     const destination = await this.prisma.destination.create({
       data: createDestinationDto,
     });
@@ -45,8 +64,12 @@ export class DestinationService {
   }
 
   async update(id: number, updateDestinationDto: UpdateDestinationDto) {
-    await this.findOne(id);
-
+    const rest = await this.prisma.destination.findUnique({
+      where: { id },
+    });
+    if (!rest) {
+      throw new NotFoundException('Destination not found');
+    }
     const destination = await this.prisma.destination.update({
       where: { id },
       data: updateDestinationDto,
@@ -59,7 +82,13 @@ export class DestinationService {
   }
 
   async remove(id: number) {
-    await this.findOne(id);
+    const rest = await this.prisma.destination.findUnique({
+      where: { id },
+    });
+
+    if (!rest) {
+      throw new NotFoundException('Destination not found');
+    }
 
     await this.prisma.destination.delete({
       where: { id },
