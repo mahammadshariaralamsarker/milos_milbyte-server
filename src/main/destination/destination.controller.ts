@@ -8,6 +8,7 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRoles } from '@prisma/client';
@@ -16,6 +17,7 @@ import { AuthGuard } from 'src/main/auth/guards/auth.guard';
 import { RolesGuard } from 'src/main/auth/guards/roles.guard';
 import { DestinationService } from './destination.service';
 import { CreateDestinationDto } from './dto/create-destination.dto';
+import { DestinationQueryDto } from './dto/destination-query.dto';
 import { UpdateDestinationDto } from './dto/update-destination.dto';
 
 @ApiTags('Destinations')
@@ -34,8 +36,8 @@ export class DestinationController {
 
   @ApiOperation({ summary: 'Get all destinations (Public)' })
   @Get()
-  async findAll() {
-    return await this.destinationService.findAll();
+  async findAll(@Query() query: DestinationQueryDto) {
+    return await this.destinationService.findAll(query);
   }
 
   @ApiOperation({ summary: 'Get destination by id (Public)' })

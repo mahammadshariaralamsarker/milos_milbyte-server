@@ -3,8 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from 'src/config/prisma/prisma.service';
 import { CreateDestinationDto } from './dto/create-destination.dto';
+import { DestinationQueryDto } from './dto/destination-query.dto';
 import { UpdateDestinationDto } from './dto/update-destination.dto';
 
 @Injectable()
@@ -37,10 +39,39 @@ export class DestinationService {
     };
   }
 
-  async findAll() {
+  async findAll(query: DestinationQueryDto) {
+    const where: Prisma.DestinationWhereInput = {
+      AND: [
+        query.name
+          ? {
+              name: {
+                contains: query.name,
+                mode: 'insensitive',
+              },
+            }
+          : {},
+        query.location
+          ? {
+              location: {
+                contains: query.location,
+                mode: 'insensitive',
+              },
+            }
+          : {},
+      ],
+    };
+
     const destinations = await this.prisma.destination.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
     });
+
+    if (destinations.length === 0) {
+      return {
+        message: 'No destinations found',
+        destinations: [],
+      };
+    }
 
     return {
       message: 'Destinations fetched successfully',
