@@ -4,11 +4,11 @@ import {
   Post,
   Body,
   Patch,
-  Req,
+  Param,
+  Delete,
   UseGuards,
+  Req,
 } from '@nestjs/common';
-import { UserRoles } from '@prisma/client';
-import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -19,6 +19,7 @@ import { UpdateProfilePictureDto } from './dto/update-profile-picture.dto';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UserRoles } from '@prisma/client';
 
 type AuthenticatedRequest = Request & {
   user: {
