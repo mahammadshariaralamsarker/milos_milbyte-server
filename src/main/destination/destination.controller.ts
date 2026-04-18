@@ -25,6 +25,7 @@ import { UpdateDestinationDto } from './dto/update-destination.dto';
 export class DestinationController {
   constructor(private readonly destinationService: DestinationService) {}
 
+  @ApiTags('Admin')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(UserRoles.SUPERADMIN, UserRoles.ADMIN)
   @ApiBearerAuth()
@@ -34,18 +35,21 @@ export class DestinationController {
     return await this.destinationService.create(createDestinationDto);
   }
 
+  @ApiTags('Public')
   @ApiOperation({ summary: 'Get all destinations (Public)' })
   @Get()
   async findAll(@Query() query: DestinationQueryDto) {
     return await this.destinationService.findAll(query);
   }
 
+  @ApiTags('Public')
   @ApiOperation({ summary: 'Get destination by id (Public)' })
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.destinationService.findOne(id);
   }
 
+  @ApiTags('Admin')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(UserRoles.SUPERADMIN, UserRoles.ADMIN)
   @ApiBearerAuth()
@@ -58,6 +62,7 @@ export class DestinationController {
     return await this.destinationService.update(id, updateDestinationDto);
   }
 
+  @ApiTags('Admin')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(UserRoles.SUPERADMIN, UserRoles.ADMIN)
   @ApiBearerAuth()

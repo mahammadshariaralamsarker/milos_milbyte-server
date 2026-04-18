@@ -40,8 +40,8 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor());
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Mikearagon API')
-    .setDescription('API documentation for Mikearagon backend')
+    .setTitle('Milos_Millbyte API')
+    .setDescription('API documentation for Milos backend')
     .setVersion('1.0.0')
     .addBearerAuth()
     .build();

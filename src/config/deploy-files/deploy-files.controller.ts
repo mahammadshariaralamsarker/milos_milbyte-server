@@ -16,6 +16,7 @@ import type { Request } from 'express';
 import { UploadFileDto } from './dto/deploy.dto';
 
 @ApiTags('Files')
+@ApiTags('Public')
 @Controller('files')
 export class FilesController {
   private readonly logger = new Logger(FilesController.name);

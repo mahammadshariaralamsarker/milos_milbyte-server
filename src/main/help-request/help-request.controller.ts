@@ -25,11 +25,13 @@ export class HelpRequestController {
   constructor(private readonly helpRequestService: HelpRequestService) {}
 
   @Post()
+  @ApiTags('Public')
   @ApiOperation({ summary: 'Submit help request (public)' })
   async create(@Body() createHelpRequestDto: CreateHelpRequestDto) {
     return this.helpRequestService.create(createHelpRequestDto);
   }
 
+  @ApiTags('Admin')
   @Get()
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(UserRoles.SUPERADMIN, UserRoles.ADMIN)
@@ -39,6 +41,7 @@ export class HelpRequestController {
     return this.helpRequestService.findAll();
   }
 
+  @ApiTags('Admin')
   @Get(':id')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(UserRoles.SUPERADMIN, UserRoles.ADMIN)
@@ -48,6 +51,7 @@ export class HelpRequestController {
     return this.helpRequestService.findOne(Number(id));
   }
 
+  @ApiTags('Admin')
   @Patch(':id')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(UserRoles.SUPERADMIN, UserRoles.ADMIN)
@@ -60,6 +64,7 @@ export class HelpRequestController {
     return this.helpRequestService.update(Number(id), updateHelpRequestDto);
   }
 
+  @ApiTags('Admin')
   @Delete(':id')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(UserRoles.SUPERADMIN, UserRoles.ADMIN)

@@ -79,18 +79,21 @@ export class SubscriptionController {
 
   // =================== PUBLIC/USER ROUTES ===================
 
+  @ApiTags('Public')
   @Get('plans')
   @ApiOperation({ summary: 'Get all active subscription plans' })
   async getAllPlans() {
     return await this.subscriptionService.getAllPlans();
   }
 
+  @ApiTags('Public')
   @Get('plans/:id')
   @ApiOperation({ summary: 'Get subscription plan details' })
   async getPlanById(@Param('id') planId: string) {
     return await this.subscriptionService.getPlanById(Number(planId));
   }
 
+  @ApiTags('User')
   @UseGuards(AuthGuard)
   @Post('subscribe')
   @ApiOperation({ summary: 'Subscribe user to a plan' })
@@ -105,6 +108,7 @@ export class SubscriptionController {
     );
   }
 
+  @ApiTags('User')
   @UseGuards(AuthGuard)
   @Get('payment-methods')
   @ApiOperation({ summary: 'Get current user payment methods from Stripe' })
@@ -113,6 +117,7 @@ export class SubscriptionController {
     return await this.subscriptionService.getPaymentMethods(req.user.sub);
   }
 
+  @ApiTags('User')
   @UseGuards(AuthGuard)
   @Post('payment-methods/setup-intent')
   @ApiOperation({
@@ -125,6 +130,7 @@ export class SubscriptionController {
     );
   }
 
+  @ApiTags('User')
   @UseGuards(AuthGuard)
   @Post('payment-methods')
   @ApiOperation({ summary: 'Add a new Stripe payment method for current user' })
@@ -139,6 +145,7 @@ export class SubscriptionController {
     );
   }
 
+  @ApiTags('User')
   @UseGuards(AuthGuard)
   @Patch('payment-methods/:paymentMethodId')
   @ApiOperation({ summary: 'Update a Stripe payment method for current user' })
@@ -155,6 +162,7 @@ export class SubscriptionController {
     );
   }
 
+  @ApiTags('User')
   @UseGuards(AuthGuard)
   @Delete('payment-methods/:paymentMethodId')
   @ApiOperation({ summary: 'Remove a Stripe payment method from current user' })
@@ -169,7 +177,7 @@ export class SubscriptionController {
     );
   }
 
-  // webhook endpoint for Stripe to handle subscription events (e.g. payment success, cancellation)
+  @ApiTags('Public')
   @Post('webhook')
   @ApiOperation({ summary: 'Stripe webhook endpoint for subscription events' })
   async handleStripeWebhook(@Req() req: Request & { rawBody?: Buffer }) {
@@ -194,6 +202,7 @@ export class SubscriptionController {
     }
   }
 
+  @ApiTags('User')
   @UseGuards(AuthGuard)
   @Patch('upgrade')
   @ApiOperation({ summary: 'Upgrade user subscription to a better plan' })
@@ -208,11 +217,18 @@ export class SubscriptionController {
     );
   }
 
+  @ApiTags('User')
   @UseGuards(AuthGuard)
   @Post('cancel')
   @ApiOperation({ summary: 'Cancel user subscription' })
   @ApiBearerAuth()
   async cancelSubscription(@Req() req: AuthenticatedRequest) {
     return await this.subscriptionService.cancelSubscription(req.user.sub);
+  }
+
+  @Get('env')
+  @ApiOperation({ summary: 'Get environment variables for Stripe integration' })
+  async getenv() {
+    return await this.subscriptionService.getenv();
   }
 }

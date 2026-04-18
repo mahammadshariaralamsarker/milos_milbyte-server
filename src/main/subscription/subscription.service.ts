@@ -631,4 +631,17 @@ export class SubscriptionService {
 
     return { received: true, type: event.type };
   }
+
+  async getenv() {
+    if (!process.env.STRIPE_PUBLISHABLE_KEY || !process.env.STRIPE_SECRET_KEY) {
+      throw new NotFoundException(
+        'Stripe environment variables not set properly in .env file',
+      );
+    }
+
+    return {
+      STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
+      STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    };
+  }
 }
