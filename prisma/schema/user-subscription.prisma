@@ -1,0 +1,16 @@
+model UserSubscription {
+  id                   Int                @id @default(autoincrement())
+  userId               Int
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId               Int
+  plan                 SubscriptionPlan   @relation(fields: [planId], references: [id])
+  status               SubscriptionStatus @default(ACTIVE)
+  stripeSubscriptionId String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelledAt          DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@unique([userId, planId])
+}

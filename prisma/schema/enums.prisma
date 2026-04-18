@@ -1,5 +1,25 @@
 enum UserRoles {
-  CLIENT
+  SUPERADMIN
   ADMIN
-  RAIDER
+  CLIENT
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  PENDING
+}
+
+enum PlanTier {
+  BASIC
+  STANDARD
+  PREMIUM
+}
+
+enum HelpRequestStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
 }

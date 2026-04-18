@@ -1,0 +1,14 @@
+model SubscriptionPlan {
+  id            Int                @id @default(autoincrement())
+  name          String             @unique
+  description   String?
+  tier          PlanTier
+  price         Float
+  currency      String             @default("USD")
+  features      String             @db.Text
+  stripePriceId String?
+  isActive      Boolean            @default(true)
+  subscriptions UserSubscription[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
