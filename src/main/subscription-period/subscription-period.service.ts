@@ -22,8 +22,8 @@ export class SubscriptionPeriodService {
   }
 
   getPaymentIntentFromSubscription(stripeSubscription: any) {
-    const latestInvoice = stripeSubscription?.latest_invoice as any;
-    const paymentIntent = latestInvoice?.payment_intent as any;
+    const latestInvoice = stripeSubscription?.latest_invoice;
+    const paymentIntent = latestInvoice?.payment_intent;
 
     return {
       latestInvoice,

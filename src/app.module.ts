@@ -8,6 +8,7 @@ import { DeployFilesModule } from './config/deploy-files/deploy-files.module';
 import { StripeModule } from './config/stripe/stripe.module';
 import { SubscriptionModule } from './main/subscription/subscription.module';
 import { HelpRequestModule } from './main/help-request/help-request.module';
+import { DestinationModule } from './main/destination/destination.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { HelpRequestModule } from './main/help-request/help-request.module';
     AuthModule,
     SubscriptionModule,
     HelpRequestModule,
+    DestinationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

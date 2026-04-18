@@ -609,7 +609,7 @@ export class SubscriptionService {
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as any;
-        const stripeData = subscription as any;
+        const stripeData = subscription;
         const periodDates =
           this.subscriptionPeriodService.resolvePeriodDatesFromStripeResponse(
             stripeData,

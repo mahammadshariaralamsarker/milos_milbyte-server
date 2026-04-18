@@ -233,7 +233,7 @@ export class AuthService {
 
   // ================= UTIL =================
   private sanitizeUser<T extends { password: string }>(user: T) {
-    const { password: _password, ...safeUser } = user;
+    const { ...safeUser } = user;
     return safeUser;
   }
 

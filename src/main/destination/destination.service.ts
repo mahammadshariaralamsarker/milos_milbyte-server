@@ -1,26 +1,72 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'src/config/prisma/prisma.service';
 import { CreateDestinationDto } from './dto/create-destination.dto';
 import { UpdateDestinationDto } from './dto/update-destination.dto';
 
 @Injectable()
 export class DestinationService {
-  create(createDestinationDto: CreateDestinationDto) {
-    return 'This action adds a new destination';
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(createDestinationDto: CreateDestinationDto) {
+    const destination = await this.prisma.destination.create({
+      data: createDestinationDto,
+    });
+
+    return {
+      message: 'Destination created successfully',
+      destination,
+    };
   }
 
-  findAll() {
-    return `This action returns all destination`;
+  async findAll() {
+    const destinations = await this.prisma.destination.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      message: 'Destinations fetched successfully',
+      destinations,
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} destination`;
+  async findOne(id: number) {
+    const destination = await this.prisma.destination.findUnique({
+      where: { id },
+    });
+
+    if (!destination) {
+      throw new NotFoundException('Destination not found');
+    }
+
+    return {
+      message: 'Destination fetched successfully',
+      destination,
+    };
   }
 
-  update(id: number, updateDestinationDto: UpdateDestinationDto) {
-    return `This action updates a #${id} destination`;
+  async update(id: number, updateDestinationDto: UpdateDestinationDto) {
+    await this.findOne(id);
+
+    const destination = await this.prisma.destination.update({
+      where: { id },
+      data: updateDestinationDto,
+    });
+
+    return {
+      message: 'Destination updated successfully',
+      destination,
+    };
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} destination`;
+  async remove(id: number) {
+    await this.findOne(id);
+
+    await this.prisma.destination.delete({
+      where: { id },
+    });
+
+    return {
+      message: 'Destination deleted successfully',
+    };
   }
 }
