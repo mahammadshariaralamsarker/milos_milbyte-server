@@ -9,6 +9,7 @@ import { StripeModule } from './config/stripe/stripe.module';
 import { SubscriptionModule } from './main/subscription/subscription.module';
 import { HelpRequestModule } from './main/help-request/help-request.module';
 import { DestinationModule } from './main/destination/destination.module';
+import { SeedModule } from './main/maintenance/seed/seed.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { DestinationModule } from './main/destination/destination.module';
     SubscriptionModule,
     HelpRequestModule,
     DestinationModule,
+    SeedModule,
   ],
   controllers: [AppController],
   providers: [AppService],
