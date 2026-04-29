@@ -63,6 +63,7 @@ export class AuthService {
       data: {
         userId: user.id,
         planId: freePlan.id,
+        planType: freePlan.tier,
       },
     });
     return {
