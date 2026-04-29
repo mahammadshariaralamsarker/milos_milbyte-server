@@ -3,14 +3,15 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY . .
 
 COPY start.sh ./
 RUN chmod +x start.sh
 
-RUN npx prisma generate && npm run build
+RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/milos_milbyte" npx prisma generate
+RUN npm run build
 
 EXPOSE 3000
 
