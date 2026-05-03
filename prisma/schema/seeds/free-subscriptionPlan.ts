@@ -27,7 +27,7 @@ export async function seedFreeSubscriptionPlan(prisma: PrismaClient) {
       },
     });
 
-    logger.log(`Free Subscription Plan created successfully (ID: ${freePlan.id})`);
+  logger.log(`Free Subscription Plan created successfully (ID: ${freePlan.id})`);
   } catch (error) {
     logger.error('Error occurred while seeding Free Subscription Plan', error);
     throw error;
