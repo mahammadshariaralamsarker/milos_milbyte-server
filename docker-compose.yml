@@ -18,7 +18,10 @@ services:
       retries: 10
 
   app:
-    image: ghcr.io/dev-ninjas-backup/milos_milbyte-server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: milos_milbyte_server:local
     container_name: milos_milbyte_api
     restart: unless-stopped
     env_file:
