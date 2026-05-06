@@ -7,9 +7,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserRoles } from '@prisma/client';
+import { PlanTier, UserRoles } from '@prisma/client';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
+import type { Cache } from '@nestjs/cache-manager';
 import { hash, compare } from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { PrismaService } from 'src/config/prisma/prisma.service';
@@ -51,9 +51,25 @@ export class AuthService {
       },
     });
 
+    const freePlan = await this.prisma.subscriptionPlan.findFirst({
+      where: { tier: PlanTier.FREE },
+    });
+
+    if (!freePlan) {
+      throw new NotFoundException('Free subscription plan not found');
+    }
+
+    const userSubscription = await this.prisma.userSubscription.create({
+      data: {
+        userId: user.id,
+        planId: freePlan.id,
+        planType: freePlan.tier,
+      },
+    });
     return {
       message: 'Registration successful',
       user: this.sanitizeUser(user),
+      subscription: userSubscription,
     };
   }
 
@@ -96,8 +112,16 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
+    const mySubscription = await this.prisma.userSubscription.findFirst({
+      where: { userId: Number(userId) },
+      include: {
+        plan: true,
+      },
+    });
+
     return {
       user: this.sanitizeUser(user),
+      mySubscriptionName: mySubscription?.plan.name,
     };
   }
 
@@ -233,7 +257,7 @@ export class AuthService {
 
   // ================= UTIL =================
   private sanitizeUser<T extends { password: string }>(user: T) {
-    const { password: _password, ...safeUser } = user;
+    const { ...safeUser } = user;
     return safeUser;
   }
 

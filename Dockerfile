@@ -7,8 +7,11 @@ RUN npm ci
 
 COPY . .
 
-RUN npm run prisma:generate && npm run build
+COPY start.sh ./
+RUN chmod +x start.sh
+
+RUN npx prisma generate && npm run build
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npm run prisma:migrate:deploy && npm run start:prod"]
+CMD ["./start.sh"]

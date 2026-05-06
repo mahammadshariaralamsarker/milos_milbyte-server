@@ -1,10 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import { seedSuperAdmin } from './seeds/super-admin.seed';
+import { seedFreeSubscriptionPlan } from './seeds/free-subscriptionPlan';
 
 const prisma = new PrismaClient();
 
-async function main() {
+export async function main() {
   await seedSuperAdmin(prisma);
+  await seedFreeSubscriptionPlan(prisma);
 }
 
 main()

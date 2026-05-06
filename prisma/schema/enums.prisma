@@ -12,6 +12,7 @@ enum SubscriptionStatus {
 }
 
 enum PlanTier {
+  FREE
   BASIC
   STANDARD
   PREMIUM
