@@ -268,6 +268,7 @@ export class SubscriptionService {
         create: {
           userId: userId,
           planId: subscribeDto.planId,
+          planType: plan.tier,
           status: SubscriptionStatus.PENDING,
           stripeSubscriptionId: stripeSubscription.id,
           currentPeriodStart: periodDates.currentPeriodStart,
