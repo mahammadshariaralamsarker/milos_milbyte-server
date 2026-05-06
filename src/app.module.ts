@@ -7,6 +7,8 @@ import { RedisModule } from './config/redis/redis.module';
 import { DeployFilesModule } from './config/deploy-files/deploy-files.module';
 import { DestinationModule } from './main/destination/destination.module';
 import { SeedModule } from './main/maintenance/seed/seed.module';
+import { SubscriptionPeriodModule } from './main/subscription-period/subscription-period.module';
+import { SubscriptionModule } from './main/subscription/subscription.module';
 
 @Module({
   imports: [
@@ -16,6 +18,9 @@ import { SeedModule } from './main/maintenance/seed/seed.module';
     AuthModule,
     DestinationModule,
     SeedModule,
+    SubscriptionModule,
+
+    SubscriptionPeriodModule,
   ],
   controllers: [AppController],
   providers: [AppService],
