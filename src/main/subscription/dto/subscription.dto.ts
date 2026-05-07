@@ -7,6 +7,7 @@ import {
   IsEnum,
   IsBoolean,
   MinLength,
+  IsNotEmpty,
 } from 'class-validator';
 
 export class CreateSubscriptionPlanDto {
@@ -75,14 +76,8 @@ export class UpdateSubscriptionPlanDto {
 export class SubscribeUserDto {
   @ApiProperty({ example: 1, description: 'Subscription plan ID' })
   @IsNumber()
+  @IsNotEmpty()
   planId!: number;
-
-  @ApiProperty({
-    example: 'tok_visa',
-    description: 'Stripe payment method token',
-  })
-  @IsString()
-  paymentMethodId!: string;
 }
 
 export class UpgradeSubscriptionDto {

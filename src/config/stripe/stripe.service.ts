@@ -17,7 +17,7 @@ export class StripeService {
     currency: string = 'usd',
   ) {
     return this.stripe.prices.create({
-      unit_amount: Math.round(amount * 100), // Convert to cents
+      unit_amount: Math.round(amount * 100),
       currency: currency.toLowerCase(),
       product: productId,
       recurring: {
@@ -48,99 +48,17 @@ export class StripeService {
     return this.createCustomer(email, name);
   }
 
-  async attachPaymentMethodToCustomer(
-    customerId: string,
-    paymentMethodId: string,
-  ) {
-    await this.stripe.paymentMethods.attach(paymentMethodId, {
-      customer: customerId,
-    });
-
-    await this.stripe.customers.update(customerId, {
-      invoice_settings: {
-        default_payment_method: paymentMethodId,
-      },
-    });
-  }
-
-  async listCustomerPaymentMethods(customerId: string) {
-    const rest = await this.stripe.paymentMethods.list({
-      customer: customerId,
-      type: 'card',
-    });
-    console.log(rest);
-    return rest;
-  }
-
-  async getCustomerDefaultPaymentMethod(customerId: string) {
-    const customer = await this.stripe.customers.retrieve(customerId);
-
-    if ('deleted' in customer && customer.deleted) {
-      return null;
-    }
-
-    return customer.invoice_settings?.default_payment_method || null;
-  }
-
-  async setCustomerDefaultPaymentMethod(
-    customerId: string,
-    paymentMethodId: string | null,
-  ) {
-    return this.stripe.customers.update(customerId, {
-      invoice_settings: {
-        default_payment_method: paymentMethodId || undefined,
-      },
-    });
-  }
-
-  async detachPaymentMethod(paymentMethodId: string) {
-    return this.stripe.paymentMethods.detach(paymentMethodId);
-  }
-
-  async getPaymentMethod(paymentMethodId: string) {
-    return this.stripe.paymentMethods.retrieve(paymentMethodId);
-  }
-
-  async createSubscription(
-    customerId: string,
-    priceId: string,
-    paymentMethodId?: string,
-    metadata?: Record<string, string>,
-  ) {
-    return this.stripe.subscriptions.create({
-      customer: customerId,
-      items: [{ price: priceId }],
-      default_payment_method: paymentMethodId,
-      payment_behavior: 'default_incomplete',
-      collection_method: 'charge_automatically',
-      metadata,
-      expand: ['latest_invoice.payment_intent', 'latest_invoice.lines'],
-    });
-  }
-
-  async createSetupIntent(customerId: string) {
-    return this.stripe.setupIntents.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      usage: 'off_session',
-    });
-  }
-
-  async getSubscription(subscriptionId: string) {
-    return this.stripe.subscriptions.retrieve(subscriptionId);
-  }
-
   async cancelSubscription(subscriptionId: string, immediately = false) {
     if (immediately) {
-      return this.stripe.subscriptions.cancel(subscriptionId);
+      return await this.stripe.subscriptions.cancel(subscriptionId);
     }
-    return this.stripe.subscriptions.update(subscriptionId, {
+    return await this.stripe.subscriptions.update(subscriptionId, {
       cancel_at_period_end: true,
     });
   }
 
   async updateSubscription(subscriptionId: string, items: any) {
-    return this.stripe.subscriptions.update(subscriptionId, {
+    return await this.stripe.subscriptions.update(subscriptionId, {
       items,
     });
   }

@@ -12,21 +12,24 @@ import {
   UpdateSubscriptionPlanDto,
   SubscribeUserDto,
   UpgradeSubscriptionDto,
-  AddPaymentMethodDto,
-  UpdatePaymentMethodDto,
 } from './dto/subscription.dto';
 import { SubscriptionStatus } from '@prisma/client';
 import { SubscriptionPeriodService } from '../subscription-period/subscription-period.service';
-
+import Stripe from 'stripe';
 @Injectable()
 export class SubscriptionService {
+  private stripe: InstanceType<typeof Stripe>;
   private readonly logger = new Logger(SubscriptionService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly stripeService: StripeService,
     private readonly subscriptionPeriodService: SubscriptionPeriodService,
-  ) {}
+  ) {
+    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+      apiVersion: '2024-04-10',
+    } as any);
+  }
 
   private async resolveStripeCustomer(userId: number) {
     const user = await this.prisma.user.findUnique({
@@ -59,13 +62,27 @@ export class SubscriptionService {
   async createPlan(createPlanDto: CreateSubscriptionPlanDto) {
     this.logger.log(`Creating plan: ${createPlanDto.name}`);
 
-    const existingPlan = await this.prisma.subscriptionPlan.findUnique({
-      where: { name: createPlanDto.name },
+    const existingPlan = await this.prisma.subscriptionPlan.findFirst({
+      where: {
+        AND: [
+          {
+            price: createPlanDto.price,
+          },
+          {
+            name: createPlanDto.name,
+          },
+          {
+            tier: createPlanDto.tier,
+          },
+        ],
+      },
     });
 
     if (existingPlan) {
       this.logger.warn(`Plan already exists: ${createPlanDto.name}`);
-      throw new ConflictException('Plan with this name already exists');
+      throw new ConflictException(
+        'Plan with this name, price, and tier already exists',
+      );
     }
 
     try {
@@ -208,11 +225,10 @@ export class SubscriptionService {
     const existingSubscription = await this.prisma.userSubscription.findFirst({
       where: {
         userId: userId,
-        status: SubscriptionStatus.ACTIVE,
       },
     });
 
-    if (existingSubscription) {
+    if (existingSubscription && existingSubscription.planType !== 'FREE') {
       this.logger.warn(`User ${userId} already has active subscription`);
       throw new ConflictException('User already has an active subscription');
     }
@@ -222,76 +238,67 @@ export class SubscriptionService {
       throw new BadRequestException('Plan is not properly configured');
     }
 
-    try {
-      const { customerId } = await this.resolveStripeCustomer(userId);
+    const customer = await this.stripe.customers.create({
+      name: user.name,
+      email: user.email,
+    });
+    console.log({ customer });
+    // const onboardingLink = await this.stripe.checkout.sessions.create({
+    //   customer: customerId,
 
-      await this.stripeService.attachPaymentMethodToCustomer(
-        customerId,
-        subscribeDto.paymentMethodId,
-      );
+    //   mode: 'subscription',
+    //   payment_method_types: ['card'],
+    //   line_items: [
+    //     {
+    //       price: priceId,
+    //       quantity: 1,
+    //     },
+    //   ],
+    //   success_url: `${process.env.FRONTEND_URL}/payment/success`,
+    //   cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`,
+    //   // Optional: add metadata to track the user/plan in webhooks
+    //   metadata: {
+    //     customerId: customerId,
+    //     userId: user.id,
+    //     subscriptionPlanId: plan.id,
+    //   },
+    // });
 
-      const stripeSubscription = await this.stripeService.createSubscription(
-        customerId,
-        plan.stripePriceId,
-        subscribeDto.paymentMethodId,
-        {
-          userId: String(userId),
-          planId: String(plan.id),
-        },
-      );
-
-      const stripeData = stripeSubscription as any;
-      const paymentIntentData =
-        this.subscriptionPeriodService.getPaymentIntentFromSubscription(
-          stripeData,
-        );
-      const periodDates =
-        this.subscriptionPeriodService.resolvePeriodDatesFromStripeResponse(
-          stripeData,
-          paymentIntentData.latestInvoice,
-        );
-
-      const subscription = await this.prisma.userSubscription.upsert({
-        where: {
-          userId_planId: {
-            userId: userId,
-            planId: subscribeDto.planId,
-          },
-        },
-        update: {
-          status: SubscriptionStatus.PENDING,
-          stripeSubscriptionId: stripeSubscription.id,
-          currentPeriodStart: periodDates.currentPeriodStart,
-          currentPeriodEnd: periodDates.currentPeriodEnd,
-          cancelledAt: null,
-        },
-        create: {
-          userId: userId,
-          planId: subscribeDto.planId,
-          planType: plan.tier,
-          status: SubscriptionStatus.PENDING,
-          stripeSubscriptionId: stripeSubscription.id,
-          currentPeriodStart: periodDates.currentPeriodStart,
-          currentPeriodEnd: periodDates.currentPeriodEnd,
-        },
-        include: { plan: true },
-      });
-
-      this.logger.log(`Subscription created for user ${userId}`);
-      return {
-        message: 'Subscription created successfully',
-        data: {
-          subscription,
-          stripeSubscriptionId: stripeSubscription.id,
-          stripeSubscriptionStatus: stripeSubscription.status,
-          paymentIntentStatus: paymentIntentData.paymentIntentStatus,
-          clientSecret: paymentIntentData.clientSecret,
-        },
-      };
-    } catch (error) {
-      this.logger.error(`Subscription failed for user ${userId}`, error);
-      throw error;
-    }
+    // const subscription = await this.prisma.userSubscription.upsert({
+    //   where: {
+    //     userId_planId: {
+    //       userId: userId,
+    //       planId: subscribeDto.planId,
+    //     },
+    //   },
+    //   update: {
+    //     status: SubscriptionStatus.PENDING,
+    //     stripeSubscriptionId: stripeSubscription.id,
+    //     currentPeriodStart: periodDates.currentPeriodStart,
+    //     currentPeriodEnd: periodDates.currentPeriodEnd,
+    //     cancelledAt: null,
+    //   },
+    //   create: {
+    //     userId: userId,
+    //     planId: subscribeDto.planId,
+    //     planType: plan.tier,
+    //     status: SubscriptionStatus.PENDING,
+    //     stripeSubscriptionId: stripeSubscription.id,
+    //     currentPeriodStart: periodDates.currentPeriodStart,
+    //     currentPeriodEnd: periodDates.currentPeriodEnd,
+    //   },
+    //   include: { plan: true },
+    // });
+    // this.logger.log(`Subscription created for user ${userId}`);
+    // return {
+    //   message: 'Subscription created successfully',
+    //   data: {
+    //     subscription,
+    //     stripeSubscriptionId: stripeSubscription.id,
+    //     stripeSubscriptionStatus: stripeSubscription.status,
+    //     paymentIntentStatus: paymentIntentData.paymentIntentStatus,
+    //     clientSecret: paymentIntentData.clientSecret,
+    //   },
   }
 
   async upgradeSubscription(
@@ -408,133 +415,6 @@ export class SubscriptionService {
     }
   }
 
-  async addPaymentMethod(
-    userId: number,
-    addPaymentMethodDto: AddPaymentMethodDto,
-  ) {
-    const { customerId } = await this.resolveStripeCustomer(userId);
-
-    await this.stripeService.attachPaymentMethodToCustomer(
-      customerId,
-      addPaymentMethodDto.paymentMethodId,
-    );
-
-    if (addPaymentMethodDto.setAsDefault) {
-      await this.stripeService.setCustomerDefaultPaymentMethod(
-        customerId,
-        addPaymentMethodDto.paymentMethodId,
-      );
-    }
-
-    const paymentMethod = await this.stripeService.getPaymentMethod(
-      addPaymentMethodDto.paymentMethodId,
-    );
-
-    return {
-      message: 'Payment method added successfully',
-      data: paymentMethod,
-    };
-  }
-
-  async createPaymentMethodSetupIntent(userId: number) {
-    const { customerId } = await this.resolveStripeCustomer(userId);
-
-    const setupIntent = await this.stripeService.createSetupIntent(customerId);
-
-    return {
-      message: 'Setup intent created successfully',
-      data: {
-        customerId,
-        setupIntentId: setupIntent.id,
-        clientSecret: setupIntent.client_secret,
-      },
-    };
-  }
-
-  async getPaymentMethods(userId: number) {
-    const { customerId } = await this.resolveStripeCustomer(userId);
-
-    const [paymentMethods, defaultPaymentMethod] = await Promise.all([
-      this.stripeService.listCustomerPaymentMethods(customerId),
-      this.stripeService.getCustomerDefaultPaymentMethod(customerId),
-    ]);
-
-    return {
-      message: 'Payment methods fetched successfully',
-      data: {
-        defaultPaymentMethod,
-        paymentMethods: paymentMethods.data,
-      },
-    };
-  }
-
-  async updatePaymentMethod(
-    userId: number,
-    paymentMethodId: string,
-    updatePaymentMethodDto: UpdatePaymentMethodDto,
-  ) {
-    const { customerId } = await this.resolveStripeCustomer(userId);
-
-    const defaultPaymentMethod =
-      await this.stripeService.getCustomerDefaultPaymentMethod(customerId);
-
-    if (updatePaymentMethodDto.setAsDefault) {
-      await this.stripeService.setCustomerDefaultPaymentMethod(
-        customerId,
-        paymentMethodId,
-      );
-    }
-
-    const paymentMethod =
-      await this.stripeService.getPaymentMethod(paymentMethodId);
-
-    return {
-      message: 'Payment method updated successfully',
-      data: {
-        paymentMethod,
-        previousDefaultPaymentMethod: defaultPaymentMethod,
-        currentDefaultPaymentMethod: updatePaymentMethodDto.setAsDefault
-          ? paymentMethodId
-          : defaultPaymentMethod,
-      },
-    };
-  }
-
-  async removePaymentMethod(userId: number, paymentMethodId: string) {
-    const { customerId } = await this.resolveStripeCustomer(userId);
-
-    const [paymentMethods, defaultPaymentMethod] = await Promise.all([
-      this.stripeService.listCustomerPaymentMethods(customerId),
-      this.stripeService.getCustomerDefaultPaymentMethod(customerId),
-    ]);
-
-    const remainingMethods = paymentMethods.data.filter(
-      (paymentMethod) => paymentMethod.id !== paymentMethodId,
-    );
-
-    if (defaultPaymentMethod === paymentMethodId) {
-      await this.stripeService.setCustomerDefaultPaymentMethod(
-        customerId,
-        remainingMethods[0]?.id ?? null,
-      );
-    }
-
-    const detached =
-      await this.stripeService.detachPaymentMethod(paymentMethodId);
-
-    return {
-      message: 'Payment method removed successfully',
-      data: {
-        detached,
-        remainingPaymentMethods: remainingMethods,
-        currentDefaultPaymentMethod:
-          defaultPaymentMethod === paymentMethodId
-            ? (remainingMethods[0]?.id ?? null)
-            : defaultPaymentMethod,
-      },
-    };
-  }
-
   async handleStripeWebhook(
     rawBody: Buffer,
     signature: string,
@@ -560,71 +440,62 @@ export class SubscriptionService {
           break;
         }
 
-        const stripeSubscription =
-          await this.stripeService.getSubscription(subscriptionId);
-        const stripeData = stripeSubscription as any;
-        const periodDates =
-          this.subscriptionPeriodService.resolvePeriodDatesFromStripeResponse(
-            stripeData,
-            invoice,
-          );
-
-        await this.prisma.userSubscription.updateMany({
-          where: { stripeSubscriptionId: subscriptionId },
-          data: {
-            status: SubscriptionStatus.ACTIVE,
-            currentPeriodStart: periodDates.currentPeriodStart,
-            currentPeriodEnd: periodDates.currentPeriodEnd,
-            cancelledAt: null,
-          },
-        });
+        // await this.prisma.userSubscription.updateMany({
+        //   where: { stripeSubscriptionId: subscriptionId },
+        //   data: {
+        //     status: SubscriptionStatus.ACTIVE,
+        //     currentPeriodStart: periodDates.currentPeriodStart,
+        //     currentPeriodEnd: periodDates.currentPeriodEnd,
+        //     cancelledAt: null,
+        //   },
+        // });
         break;
       }
 
-      case 'invoice.payment_failed': {
-        const invoice = event.data.object as any;
-        const subscriptionId = invoice.subscription as string | null;
-        if (!subscriptionId) {
-          break;
-        }
+      // case 'invoice.payment_failed': {
+      //   const invoice = event.data.object as any;
+      //   const subscriptionId = invoice.subscription as string | null;
+      //   if (!subscriptionId) {
+      //     break;
+      //   }
 
-        await this.prisma.userSubscription.updateMany({
-          where: { stripeSubscriptionId: subscriptionId },
-          data: { status: SubscriptionStatus.PENDING },
-        });
-        break;
-      }
+      //   await this.prisma.userSubscription.updateMany({
+      //     where: { stripeSubscriptionId: subscriptionId },
+      //     data: { status: SubscriptionStatus.PENDING },
+      //   });
+      //   break;
+      // }
 
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object as any;
+      // case 'customer.subscription.deleted': {
+      //   const subscription = event.data.object as any;
 
-        await this.prisma.userSubscription.updateMany({
-          where: { stripeSubscriptionId: subscription.id },
-          data: {
-            status: SubscriptionStatus.CANCELLED,
-            cancelledAt: new Date(),
-          },
-        });
-        break;
-      }
+      //   await this.prisma.userSubscription.updateMany({
+      //     where: { stripeSubscriptionId: subscription.id },
+      //     data: {
+      //       status: SubscriptionStatus.CANCELLED,
+      //       cancelledAt: new Date(),
+      //     },
+      //   });
+      //   break;
+      // }
 
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object as any;
-        const stripeData = subscription;
-        const periodDates =
-          this.subscriptionPeriodService.resolvePeriodDatesFromStripeResponse(
-            stripeData,
-          );
+      // case 'customer.subscription.updated': {
+      //   const subscription = event.data.object as any;
+      //   const stripeData = subscription;
+      //   const periodDates =
+      //     this.subscriptionPeriodService.resolvePeriodDatesFromStripeResponse(
+      //       stripeData,
+      //     );
 
-        await this.prisma.userSubscription.updateMany({
-          where: { stripeSubscriptionId: subscription.id },
-          data: {
-            currentPeriodStart: periodDates.currentPeriodStart,
-            currentPeriodEnd: periodDates.currentPeriodEnd,
-          },
-        });
-        break;
-      }
+      //   await this.prisma.userSubscription.updateMany({
+      //     where: { stripeSubscriptionId: subscription.id },
+      //     data: {
+      //       currentPeriodStart: periodDates.currentPeriodStart,
+      //       currentPeriodEnd: periodDates.currentPeriodEnd,
+      //     },
+      //   });
+      //   break;
+      // }
 
       default:
         break;

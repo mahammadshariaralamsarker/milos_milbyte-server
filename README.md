@@ -70,3 +70,9 @@ When running inside Docker Compose, the app uses:
 
 - OpenAPI JSON + UI is available at `GET /docs`
 - Local URL: `http://localhost:3000/docs`
+
+// admin token
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWRtaW5AZ21haWwuY29tIiwicm9sZSI6IlNVUEVSQURNSU4iLCJpYXQiOjE3NzgxMDMyNTUsImV4cCI6MTc3ODE4OTY1NX0.t5u4Bz9FmekG_akXtjh32Iea0CUxsPTi0vHXLUj38y8
+
+// client token
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImVtYWlsIjoiam9obkBnbWFpbC5jb20iLCJyb2xlIjoiQ0xJRU5UIiwiaWF0IjoxNzc4MTAzMzY0LCJleHAiOjE3NzgxODk3NjR9.pvHKVPQUGxr4LXsxTddi-RzKBgkr4z-3yV6OEgy6Ki8

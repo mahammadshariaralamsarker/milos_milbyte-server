@@ -100,72 +100,8 @@ export class SubscriptionController {
     @Body() subscribeDto: SubscribeUserDto,
   ) {
     return await this.subscriptionService.subscribeUser(
-      req.user.sub,
+      req.user.sub as number,
       subscribeDto,
-    );
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('payment-methods')
-  @ApiOperation({ summary: 'Get current user payment methods from Stripe' })
-  @ApiBearerAuth()
-  async getPaymentMethods(@Req() req: AuthenticatedRequest) {
-    return await this.subscriptionService.getPaymentMethods(req.user.sub);
-  }
-
-  @UseGuards(AuthGuard)
-  @Post('payment-methods/setup-intent')
-  @ApiOperation({
-    summary: 'Create Stripe setup intent for first-time payment method add',
-  })
-  @ApiBearerAuth()
-  async createPaymentMethodSetupIntent(@Req() req: AuthenticatedRequest) {
-    return await this.subscriptionService.createPaymentMethodSetupIntent(
-      req.user.sub,
-    );
-  }
-
-  @UseGuards(AuthGuard)
-  @Post('payment-methods')
-  @ApiOperation({ summary: 'Add a new Stripe payment method for current user' })
-  @ApiBearerAuth()
-  async addPaymentMethod(
-    @Req() req: AuthenticatedRequest,
-    @Body() addPaymentMethodDto: AddPaymentMethodDto,
-  ) {
-    return await this.subscriptionService.addPaymentMethod(
-      req.user.sub,
-      addPaymentMethodDto,
-    );
-  }
-
-  @UseGuards(AuthGuard)
-  @Patch('payment-methods/:paymentMethodId')
-  @ApiOperation({ summary: 'Update a Stripe payment method for current user' })
-  @ApiBearerAuth()
-  async updatePaymentMethod(
-    @Req() req: AuthenticatedRequest,
-    @Param('paymentMethodId') paymentMethodId: string,
-    @Body() updatePaymentMethodDto: UpdatePaymentMethodDto,
-  ) {
-    return await this.subscriptionService.updatePaymentMethod(
-      req.user.sub,
-      paymentMethodId,
-      updatePaymentMethodDto,
-    );
-  }
-
-  @UseGuards(AuthGuard)
-  @Delete('payment-methods/:paymentMethodId')
-  @ApiOperation({ summary: 'Remove a Stripe payment method from current user' })
-  @ApiBearerAuth()
-  async removePaymentMethod(
-    @Req() req: AuthenticatedRequest,
-    @Param('paymentMethodId') paymentMethodId: string,
-  ) {
-    return await this.subscriptionService.removePaymentMethod(
-      req.user.sub,
-      paymentMethodId,
     );
   }
 

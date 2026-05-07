@@ -14,7 +14,7 @@ export class RegisterDto {
   @MinLength(2)
   name!: string;
 
-  @ApiProperty({ example: 'john@example.com' })
+  @ApiProperty({ example: 'john@gmail.com' })
   @IsEmail()
   email!: string;
 
