@@ -18,7 +18,10 @@ services:
       retries: 10
 
   app:
-    image: ${DOCKER_USERNAME}/milos-milbyte-server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: milos-milbyte-server:local
     container_name: milos_milbyte_api
     restart: unless-stopped
     env_file:

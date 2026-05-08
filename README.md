@@ -31,7 +31,7 @@ npm run start:dev
 ## 2. Full Docker setup (app + db)
 
 ```bash
-npm run docker:up
+npm run docker:start
 ```
 
 Stop and remove containers and volume:
