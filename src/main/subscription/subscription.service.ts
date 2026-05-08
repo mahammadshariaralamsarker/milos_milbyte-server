@@ -6,6 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from 'src/config/prisma/prisma.service';
+import { MailService } from 'src/config/mail/mail.service';
 import { StripeService } from 'src/config/stripe/stripe.service';
 import {
   CreateSubscriptionPlanDto,
@@ -23,12 +24,47 @@ export class SubscriptionService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly mailService: MailService,
     private readonly stripeService: StripeService,
     private readonly subscriptionPeriodService: SubscriptionPeriodService,
   ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
       apiVersion: '2024-04-10',
     } as any);
+  }
+
+  private extractStripeId(value: string | { id: string } | null | undefined) {
+    if (!value) {
+      return null;
+    }
+
+    return typeof value === 'string' ? value : value.id;
+  }
+
+  private getPublicFrontendUrl() {
+    const rawUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+    try {
+      return new URL(rawUrl).origin;
+    } catch {
+      return new URL(`http://${rawUrl}`).origin;
+    }
+  }
+
+  private mapStripeSubscriptionStatus(status: string): SubscriptionStatus {
+    switch (status) {
+      case 'active':
+      case 'trialing':
+        return SubscriptionStatus.ACTIVE;
+      case 'canceled':
+        return SubscriptionStatus.CANCELLED;
+      case 'incomplete':
+      case 'incomplete_expired':
+      case 'past_due':
+      case 'unpaid':
+      default:
+        return SubscriptionStatus.PENDING;
+    }
   }
 
   private async resolveStripeCustomer(userId: number) {
@@ -41,7 +77,19 @@ export class SubscriptionService {
     }
 
     if (user.stripeCustomerId) {
-      return { user, customerId: user.stripeCustomerId };
+      try {
+        const customer = await this.stripeService.getCustomer(
+          user.stripeCustomerId,
+        );
+
+        if (customer && !(customer as any).deleted) {
+          return { user, customerId: user.stripeCustomerId };
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Stored Stripe customer ${user.stripeCustomerId} is invalid for user ${userId}, recreating customer`,
+        );
+      }
     }
 
     const customer = await this.stripeService.getOrCreateCustomer(
@@ -55,6 +103,183 @@ export class SubscriptionService {
     });
 
     return { user, customerId: customer.id };
+  }
+
+  private async syncSubscriptionFromStripe(
+    stripeSubscription: any,
+    invoiceData?: any,
+    forcedStatus?: SubscriptionStatus,
+    notifyUser = true,
+  ) {
+    const stripeCustomerId = this.extractStripeId(stripeSubscription.customer);
+    const metadataUserId = stripeSubscription.metadata?.userId
+      ? Number(stripeSubscription.metadata.userId)
+      : null;
+    const metadataPlanId = stripeSubscription.metadata?.subscriptionPlanId
+      ? Number(stripeSubscription.metadata.subscriptionPlanId)
+      : null;
+
+    let userId = metadataUserId;
+
+    if (!userId && stripeCustomerId) {
+      const user = await this.prisma.user.findFirst({
+        where: { stripeCustomerId },
+      });
+
+      userId = user?.id ?? null;
+    }
+
+    if (!userId) {
+      this.logger.warn(
+        `Unable to resolve local user for Stripe customer ${stripeCustomerId ?? 'unknown'}`,
+      );
+      return null;
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      this.logger.warn(`User not found while syncing Stripe subscription ${stripeSubscription.id}`);
+      return null;
+    }
+
+    let plan: { id: number; tier: any } | null = null;
+
+    if (metadataPlanId) {
+      plan = await this.prisma.subscriptionPlan.findUnique({
+        where: { id: metadataPlanId },
+      });
+    }
+
+    if (!plan) {
+      const stripePriceId = stripeSubscription.items.data[0]?.price?.id;
+
+      if (stripePriceId) {
+        plan = await this.prisma.subscriptionPlan.findFirst({
+          where: { stripePriceId },
+        });
+      }
+    }
+
+    if (!plan) {
+      this.logger.warn(
+        `Unable to resolve subscription plan for Stripe subscription ${stripeSubscription.id}`,
+      );
+      return null;
+    }
+
+    const periodDates =
+      this.subscriptionPeriodService.resolvePeriodDatesFromStripeResponse(
+        stripeSubscription,
+        invoiceData,
+      );
+
+    const status =
+      forcedStatus ?? this.mapStripeSubscriptionStatus(stripeSubscription.status);
+
+    const currentUserSubscription = await this.prisma.userSubscription.findFirst(
+      {
+        where: { userId },
+        include: { plan: true },
+        orderBy: { createdAt: 'desc' },
+      },
+    );
+
+    const payload = {
+      userId,
+      planId: plan.id,
+      planType: plan.tier,
+      status,
+      stripeSubscriptionId: stripeSubscription.id,
+      currentPeriodStart: periodDates.currentPeriodStart,
+      currentPeriodEnd: periodDates.currentPeriodEnd,
+      cancelledAt:
+        status === SubscriptionStatus.CANCELLED ? new Date() : null,
+    };
+
+    if (currentUserSubscription) {
+      const updated = await this.prisma.userSubscription.update({
+        where: { id: currentUserSubscription.id },
+        data: payload,
+        include: { plan: true },
+      });
+
+      if (notifyUser) {
+        await this.sendSubscriptionEmailNotification({
+          user,
+          previousSubscription: currentUserSubscription,
+          currentSubscription: updated,
+          action:
+            forcedStatus === SubscriptionStatus.PENDING
+              ? 'failed'
+              : forcedStatus === SubscriptionStatus.CANCELLED
+                ? 'cancelled'
+                : currentUserSubscription.planId !== plan.id
+                  ? 'upgraded'
+                  : 'renewed',
+        });
+      }
+
+      return updated;
+    }
+
+    const created = await this.prisma.userSubscription.create({
+      data: payload,
+      include: { plan: true },
+    });
+
+    if (notifyUser) {
+      await this.sendSubscriptionEmailNotification({
+        user,
+        currentSubscription: created,
+        action:
+          status === SubscriptionStatus.PENDING
+            ? 'failed'
+            : status === SubscriptionStatus.CANCELLED
+              ? 'cancelled'
+              : 'created',
+      });
+    }
+
+    return created;
+  }
+
+  private async sendSubscriptionEmailNotification(params: {
+    user: { email: string; name: string };
+    currentSubscription: { plan: { name: string }; currentPeriodEnd: Date | null };
+    action: 'created' | 'upgraded' | 'renewed' | 'failed' | 'cancelled';
+    previousSubscription?: { plan?: { name: string } | null } | null;
+  }) {
+    try {
+      await this.mailService.sendSubscriptionEmail({
+        to: params.user.email,
+        name: params.user.name,
+        action: params.action,
+        planName: params.currentSubscription.plan.name,
+        previousPlanName: params.previousSubscription?.plan?.name ?? null,
+        periodEnd: params.currentSubscription.currentPeriodEnd,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Subscription email notification failed for ${params.user.email}`,
+      );
+      this.logger.warn(error);
+    }
+  }
+
+  private async cancelPreviousSubscriptionIfNeeded(
+    stripeSubscription: any,
+  ) {
+    const previousSubscriptionId =
+      stripeSubscription.metadata?.upgradeFromSubscriptionId;
+
+    if (!previousSubscriptionId) {
+      return;
+    }
+
+    await this.stripeService.cancelSubscription(previousSubscriptionId, true);
   }
 
   // =================== ADMIN: PLAN MANAGEMENT ===================
@@ -192,6 +417,37 @@ export class SubscriptionService {
     return plan;
   }
 
+  async getMySubscription(userId: number) {
+    this.logger.log(`Fetching subscription for user ${userId}`);
+
+    const subscription = await this.prisma.userSubscription.findFirst({
+      where: { userId },
+      include: {
+        plan: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            profilePicture: true,
+            stripeCustomerId: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!subscription) {
+      this.logger.warn(`Subscription not found for user ${userId}`);
+      throw new NotFoundException('Subscription not found');
+    }
+
+    return subscription;
+  }
+
   // =================== USER: SUBSCRIPTION MANAGEMENT ===================
 
   async subscribeUser(userId: number, subscribeDto: SubscribeUserDto) {
@@ -228,7 +484,12 @@ export class SubscriptionService {
       },
     });
 
-    if (existingSubscription && existingSubscription.planType !== 'FREE') {
+    if (
+      existingSubscription &&
+      existingSubscription.planType !== 'FREE' &&
+      (existingSubscription.status === SubscriptionStatus.ACTIVE ||
+        existingSubscription.status === SubscriptionStatus.PENDING)
+    ) {
       this.logger.warn(`User ${userId} already has active subscription`);
       throw new ConflictException('User already has an active subscription');
     }
@@ -238,67 +499,47 @@ export class SubscriptionService {
       throw new BadRequestException('Plan is not properly configured');
     }
 
-    const customer = await this.stripe.customers.create({
-      name: user.name,
-      email: user.email,
+    const { customerId } = await this.resolveStripeCustomer(userId);
+
+    const frontendUrl = this.getPublicFrontendUrl();
+
+    const onboardingLink = await this.stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: plan.stripePriceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/payment/cancel`,
+      metadata: {
+        customerId,
+        userId: String(user.id),
+        subscriptionPlanId: String(plan.id),
+      },
+      subscription_data: {
+        metadata: {
+          customerId,
+          userId: String(user.id),
+          subscriptionPlanId: String(plan.id),             
+        },
+      },
     });
-    console.log({ customer });
-    // const onboardingLink = await this.stripe.checkout.sessions.create({
-    //   customer: customerId,
 
-    //   mode: 'subscription',
-    //   payment_method_types: ['card'],
-    //   line_items: [
-    //     {
-    //       price: priceId,
-    //       quantity: 1,
-    //     },
-    //   ],
-    //   success_url: `${process.env.FRONTEND_URL}/payment/success`,
-    //   cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`,
-    //   // Optional: add metadata to track the user/plan in webhooks
-    //   metadata: {
-    //     customerId: customerId,
-    //     userId: user.id,
-    //     subscriptionPlanId: plan.id,
-    //   },
-    // });
+    if (!onboardingLink.url) {
+      throw new BadRequestException('Unable to create Stripe checkout session');
+    }
 
-    // const subscription = await this.prisma.userSubscription.upsert({
-    //   where: {
-    //     userId_planId: {
-    //       userId: userId,
-    //       planId: subscribeDto.planId,
-    //     },
-    //   },
-    //   update: {
-    //     status: SubscriptionStatus.PENDING,
-    //     stripeSubscriptionId: stripeSubscription.id,
-    //     currentPeriodStart: periodDates.currentPeriodStart,
-    //     currentPeriodEnd: periodDates.currentPeriodEnd,
-    //     cancelledAt: null,
-    //   },
-    //   create: {
-    //     userId: userId,
-    //     planId: subscribeDto.planId,
-    //     planType: plan.tier,
-    //     status: SubscriptionStatus.PENDING,
-    //     stripeSubscriptionId: stripeSubscription.id,
-    //     currentPeriodStart: periodDates.currentPeriodStart,
-    //     currentPeriodEnd: periodDates.currentPeriodEnd,
-    //   },
-    //   include: { plan: true },
-    // });
-    // this.logger.log(`Subscription created for user ${userId}`);
-    // return {
-    //   message: 'Subscription created successfully',
-    //   data: {
-    //     subscription,
-    //     stripeSubscriptionId: stripeSubscription.id,
-    //     stripeSubscriptionStatus: stripeSubscription.status,
-    //     paymentIntentStatus: paymentIntentData.paymentIntentStatus,
-    //     clientSecret: paymentIntentData.clientSecret,
-    //   },
+    return {
+      message: 'Checkout session created successfully',
+      data: {
+        checkoutSessionId: onboardingLink.id,
+        checkoutUrl: onboardingLink.url,
+      },
+    };
   }
 
   async upgradeSubscription(
@@ -310,16 +551,14 @@ export class SubscriptionService {
     const currentSubscription = await this.prisma.userSubscription.findFirst({
       where: {
         userId: userId,
-        status: SubscriptionStatus.ACTIVE,
       },
       include: { plan: true },
+      orderBy: { createdAt: 'desc' },
     });
 
     if (!currentSubscription) {
-      this.logger.warn(`No active subscription for user ${userId}`);
-      throw new BadRequestException(
-        'User does not have an active subscription',
-      );
+      this.logger.warn(`No subscription record for user ${userId}`);
+      throw new NotFoundException('User does not have a subscription record');
     }
 
     const newPlan = await this.prisma.subscriptionPlan.findUnique({
@@ -341,38 +580,54 @@ export class SubscriptionService {
       );
     }
 
-    try {
-      if (currentSubscription.stripeSubscriptionId && newPlan.stripePriceId) {
-        const subscriptionItemId =
-          await this.stripeService.getSubscriptionItemId(
-            currentSubscription.stripeSubscriptionId,
-          );
-
-        if (!subscriptionItemId) {
-          throw new BadRequestException('Stripe subscription item not found');
-        }
-
-        await this.stripeService.updateSubscription(
-          currentSubscription.stripeSubscriptionId,
-          {
-            id: subscriptionItemId,
-            price: newPlan.stripePriceId,
-          },
-        );
-      }
-
-      const updated = await this.prisma.userSubscription.update({
-        where: { id: currentSubscription.id },
-        data: { planId: upgradeDto.newPlanId },
-        include: { plan: true },
-      });
-
-      this.logger.log(`Subscription upgraded for user ${userId}`);
-      return updated;
-    } catch (error) {
-      this.logger.error(`Upgrade failed for user ${userId}`, error);
-      throw error;
+    if (!newPlan.stripePriceId) {
+      this.logger.error(`Stripe price missing for plan ${newPlan.id}`);
+      throw new BadRequestException('Plan is not properly configured');
     }
+
+    const { customerId } = await this.resolveStripeCustomer(userId);
+    const frontendUrl = this.getPublicFrontendUrl();
+
+    const checkoutSession = await this.stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: newPlan.stripePriceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/payment/cancel`,
+      metadata: {
+        customerId,
+        userId: String(userId),
+        subscriptionPlanId: String(newPlan.id),
+        upgradeFromSubscriptionId: currentSubscription.stripeSubscriptionId || '',
+      },
+      subscription_data: {
+        metadata: {
+          customerId,
+          userId: String(userId),
+          subscriptionPlanId: String(newPlan.id),
+          upgradeFromSubscriptionId:
+            currentSubscription.stripeSubscriptionId || '',
+        },
+      },
+    });
+
+    if (!checkoutSession.url) {
+      throw new BadRequestException('Unable to create Stripe checkout session');
+    }
+
+    return {
+      message: 'Checkout session created successfully',
+      data: {
+        checkoutSessionId: checkoutSession.id,
+        checkoutUrl: checkoutSession.url,
+      },
+    };
   }
 
   async cancelSubscription(userId: number) {
@@ -433,69 +688,85 @@ export class SubscriptionService {
     );
 
     switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as any;
+
+        if (session.mode !== 'subscription') {
+          break;
+        }
+
+        const sessionSubscriptionId = this.extractStripeId(session.subscription);
+
+        if (!sessionSubscriptionId) {
+          this.logger.warn('Checkout session completed without subscription id');
+          break;
+        }
+
+        const stripeSubscription = await this.stripe.subscriptions.retrieve(
+          sessionSubscriptionId,
+        );
+
+        await this.syncSubscriptionFromStripe(stripeSubscription, undefined, undefined, false);
+        break;
+      }
+
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as any;
-        const subscriptionId = invoice.subscription as string | null;
+        const subscriptionId = this.extractStripeId(invoice.subscription);
+
         if (!subscriptionId) {
           break;
         }
 
-        // await this.prisma.userSubscription.updateMany({
-        //   where: { stripeSubscriptionId: subscriptionId },
-        //   data: {
-        //     status: SubscriptionStatus.ACTIVE,
-        //     currentPeriodStart: periodDates.currentPeriodStart,
-        //     currentPeriodEnd: periodDates.currentPeriodEnd,
-        //     cancelledAt: null,
-        //   },
-        // });
+        const stripeSubscription = await this.stripe.subscriptions.retrieve(
+          subscriptionId,
+        );
+
+        await this.syncSubscriptionFromStripe(stripeSubscription, invoice, undefined, true);
+        await this.cancelPreviousSubscriptionIfNeeded(stripeSubscription);
         break;
       }
 
-      // case 'invoice.payment_failed': {
-      //   const invoice = event.data.object as any;
-      //   const subscriptionId = invoice.subscription as string | null;
-      //   if (!subscriptionId) {
-      //     break;
-      //   }
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as any;
+        const subscriptionId = this.extractStripeId(invoice.subscription);
 
-      //   await this.prisma.userSubscription.updateMany({
-      //     where: { stripeSubscriptionId: subscriptionId },
-      //     data: { status: SubscriptionStatus.PENDING },
-      //   });
-      //   break;
-      // }
+        if (!subscriptionId) {
+          break;
+        }
 
-      // case 'customer.subscription.deleted': {
-      //   const subscription = event.data.object as any;
+        const stripeSubscription = await this.stripe.subscriptions.retrieve(
+          subscriptionId,
+        );
 
-      //   await this.prisma.userSubscription.updateMany({
-      //     where: { stripeSubscriptionId: subscription.id },
-      //     data: {
-      //       status: SubscriptionStatus.CANCELLED,
-      //       cancelledAt: new Date(),
-      //     },
-      //   });
-      //   break;
-      // }
+        await this.syncSubscriptionFromStripe(
+          stripeSubscription,
+          invoice,
+          SubscriptionStatus.PENDING,
+          true,
+        );
+        break;
+      }
 
-      // case 'customer.subscription.updated': {
-      //   const subscription = event.data.object as any;
-      //   const stripeData = subscription;
-      //   const periodDates =
-      //     this.subscriptionPeriodService.resolvePeriodDatesFromStripeResponse(
-      //       stripeData,
-      //     );
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        const stripeSubscription = event.data.object as any;
 
-      //   await this.prisma.userSubscription.updateMany({
-      //     where: { stripeSubscriptionId: subscription.id },
-      //     data: {
-      //       currentPeriodStart: periodDates.currentPeriodStart,
-      //       currentPeriodEnd: periodDates.currentPeriodEnd,
-      //     },
-      //   });
-      //   break;
-      // }
+        await this.syncSubscriptionFromStripe(stripeSubscription, undefined, undefined, false);
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const stripeSubscription = event.data.object as any;
+
+        await this.syncSubscriptionFromStripe(
+          stripeSubscription,
+          undefined,
+          SubscriptionStatus.CANCELLED,
+          true,
+        );
+        break;
+      }
 
       default:
         break;

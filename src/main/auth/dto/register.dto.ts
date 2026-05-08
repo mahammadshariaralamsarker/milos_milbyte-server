@@ -18,7 +18,7 @@ export class RegisterDto {
   @IsEmail()
   email!: string;
 
-  @ApiProperty({ example: 'StrongPass123!' })
+  @ApiProperty({ example: '123456' })
   @IsString()
   @MinLength(6)
   password!: string;

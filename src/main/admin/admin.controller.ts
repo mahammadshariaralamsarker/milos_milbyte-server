@@ -1,0 +1,31 @@
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { AdminService } from './admin.service';
+import { UpdateAdminDto } from './dto/update-admin.dto';
+import { UserFilterDto } from './dto/user-filter.dto';
+import { AuthGuard } from 'src/main/auth/guards/auth.guard';
+import { RolesGuard } from 'src/main/auth/guards/roles.guard';
+import { UserRoles } from '@prisma/client';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { ApiBearerAuth } from '@nestjs/swagger';
+@Controller('admin')
+export class AdminController {
+  constructor(private readonly adminService: AdminService) { }
+
+  @Get('overview')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRoles.SUPERADMIN, UserRoles.ADMIN)
+  @ApiBearerAuth()
+  async overview() {
+    return await this.adminService.overview();
+  }
+
+  @Get('users-management')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRoles.SUPERADMIN, UserRoles.ADMIN)
+  @ApiBearerAuth()
+  async userManagement(@Query() filters: UserFilterDto) {
+    return await this.adminService.userManagement(filters);
+  }
+
+ 
+}

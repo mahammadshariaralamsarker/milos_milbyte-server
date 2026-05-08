@@ -92,6 +92,14 @@ export class SubscriptionController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('me')
+  @ApiOperation({ summary: 'Get current user subscription details' })
+  @ApiBearerAuth()
+  async getMySubscription(@Req() req: AuthenticatedRequest) {
+    return await this.subscriptionService.getMySubscription(req.user.sub);
+  }
+
+  @UseGuards(AuthGuard)
   @Post('subscribe')
   @ApiOperation({ summary: 'Subscribe user to a plan' })
   @ApiBearerAuth()

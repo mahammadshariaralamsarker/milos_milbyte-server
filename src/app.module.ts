@@ -9,6 +9,7 @@ import { DestinationModule } from './main/destination/destination.module';
 import { SeedModule } from './main/maintenance/seed/seed.module';
 import { SubscriptionPeriodModule } from './main/subscription-period/subscription-period.module';
 import { SubscriptionModule } from './main/subscription/subscription.module';
+import { AdminModule } from './main/admin/admin.module';
 
 @Module({
   imports: [
@@ -21,6 +22,8 @@ import { SubscriptionModule } from './main/subscription/subscription.module';
     SubscriptionModule,
 
     SubscriptionPeriodModule,
+
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

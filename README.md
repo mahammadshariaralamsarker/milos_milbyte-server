@@ -61,6 +61,14 @@ When running inside Docker Compose, the app uses:
 
 - `postgresql://postgres:postgres@postgres:5432/milos_milbyte?schema=public`
 
+For subscription emails, configure these SMTP variables in your environment:
+
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `SMTP_FROM` (optional)
+
 ## 5. API endpoints
 
 - `GET /` returns app status message
@@ -72,7 +80,7 @@ When running inside Docker Compose, the app uses:
 - Local URL: `http://localhost:3000/docs`
 
 // admin token
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWRtaW5AZ21haWwuY29tIiwicm9sZSI6IlNVUEVSQURNSU4iLCJpYXQiOjE3NzgxMDMyNTUsImV4cCI6MTc3ODE4OTY1NX0.t5u4Bz9FmekG_akXtjh32Iea0CUxsPTi0vHXLUj38y8
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWRtaW5AZ21haWwuY29tIiwicm9sZSI6IlNVUEVSQURNSU4iLCJpYXQiOjE3NzgyNjg2ODEsImV4cCI6MTc3ODM1NTA4MX0.xfIG4cPQEaBGqqkQVi8HgktZpLrSPmX_RRFQuAxB6b8
 
 // client token
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImVtYWlsIjoiam9obkBnbWFpbC5jb20iLCJyb2xlIjoiQ0xJRU5UIiwiaWF0IjoxNzc4MTAzMzY0LCJleHAiOjE3NzgxODk3NjR9.pvHKVPQUGxr4LXsxTddi-RzKBgkr4z-3yV6OEgy6Ki8
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImVtYWlsIjoiam9obkBnbWFpbC5jb20iLCJyb2xlIjoiQ0xJRU5UIiwiaWF0IjoxNzc4MjY4ODg5LCJleHAiOjE3NzgzNTUyODl9.yGKn0o225bMIkWOJcKd1rs0L3RotYNs40IVTom0WD-Q
