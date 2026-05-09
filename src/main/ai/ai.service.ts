@@ -57,12 +57,14 @@ export class AiService {
         tripGuide: aiResponsedata?.trip_guide,
         submitted: aiResponsedata?.submitted || false,
         checkoutRequired: aiResponsedata?.checkout_required || false,
+        clientMessage: createAiDto.message,
       }
     })
 
     return {
       session_id: savedResponse.sessionId,
       user_id: String(savedResponse.userId),
+      client_message: savedResponse.clientMessage,
       ai_message: savedResponse.aiMessage,
       current_step: savedResponse.currentStep,
       parameters_extracted: {
@@ -92,6 +94,7 @@ export class AiService {
     return data.map((session) => ({
       session_id: session.sessionId,
       user_id: String(session.userId),
+      client_message: session.clientMessage,
       ai_message: session.aiMessage,
       current_step: session.currentStep,
       parameters_extracted: {

@@ -6,6 +6,7 @@ model AiSession {
   // Conversation state
   sessionId             String    
   currentStep           String    @default("location")
+  clientMessage         String @default("")
   aiMessage             String
   
   // Extracted parameters
