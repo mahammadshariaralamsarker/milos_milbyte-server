@@ -12,12 +12,17 @@ async function bootstrap() {
     rawBody: true,
   });
 
-  app.enableCors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'stripe-signature'],
-    credentials: true,
-  });
+  // app.enableCors({
+  //   origin: '*',
+  //   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  //   allowedHeaders: ['Content-Type', 'Authorization', 'stripe-signature'],
+  //   credentials: true,
+  // });
+
+app.enableCors({
+  origin: '*',
+  credentials: false,
+});
 
   // Serve uploads directory with /uploads prefix
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
