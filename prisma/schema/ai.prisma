@@ -1,0 +1,32 @@
+model AiSession {
+  id                    String    @id @default(cuid())
+  userId                Int
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Conversation state
+  sessionId             String    
+  currentStep           String    @default("location")
+  aiMessage             String
+  
+  // Extracted parameters
+  location              String?
+  startDate             DateTime?
+  endDate               DateTime?
+  travelers             Int?
+  budget                String?
+  experience            String?
+  citizenship           String?
+  passengers            Int?
+  passengerPreferences  String?
+  
+  // Trip details
+  tripCard              Json?
+  tripGuide             Json?
+  
+  // Status
+  submitted             Boolean   @default(false)
+  checkoutRequired      Boolean   @default(false)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}

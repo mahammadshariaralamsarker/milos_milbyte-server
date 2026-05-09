@@ -10,6 +10,7 @@ import { SeedModule } from './main/maintenance/seed/seed.module';
 import { SubscriptionPeriodModule } from './main/subscription-period/subscription-period.module';
 import { SubscriptionModule } from './main/subscription/subscription.module';
 import { AdminModule } from './main/admin/admin.module';
+import { AiModule } from './main/ai/ai.module';
 
 @Module({
   imports: [
@@ -24,6 +25,8 @@ import { AdminModule } from './main/admin/admin.module';
     SubscriptionPeriodModule,
 
     AdminModule,
+
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],
