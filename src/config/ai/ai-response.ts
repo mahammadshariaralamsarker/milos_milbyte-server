@@ -16,7 +16,7 @@ export const aiResponse = async (payload) => {
         return data;
 
     } catch (error) {
-        console.error("Error fetching AI response:", error);
+        console.error("Error fetching AI response:", error.message || error);
 
         const errorMessage =
             (error instanceof axios.AxiosError ? error.response?.data?.detail : null) || "Failed to fetch AI response";

@@ -11,6 +11,7 @@ import { SubscriptionPeriodModule } from './main/subscription-period/subscriptio
 import { SubscriptionModule } from './main/subscription/subscription.module';
 import { AdminModule } from './main/admin/admin.module';
 import { AiModule } from './main/ai/ai.module';
+import { HelpRequestModule } from './main/help-request/help-request.module';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { AiModule } from './main/ai/ai.module';
     DestinationModule,
     SeedModule,
     SubscriptionModule,
-
+    HelpRequestModule,
     SubscriptionPeriodModule,
 
     AdminModule,
@@ -31,4 +32,4 @@ import { AiModule } from './main/ai/ai.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

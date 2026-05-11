@@ -1,5 +1,5 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty } from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class CreateAiDto {
 
@@ -8,6 +8,10 @@ export class CreateAiDto {
     example: 'I want to plan a trip to Paris next month.',
   })
   @IsNotEmpty()
+  @IsString()
   message!: string;
+
+
+
 
 }

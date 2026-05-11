@@ -11,6 +11,45 @@ CREATE TYPE "PlanTier" AS ENUM ('FREE', 'BASIC', 'STANDARD', 'PREMIUM');
 CREATE TYPE "HelpRequestStatus" AS ENUM ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED');
 
 -- CreateTable
+CREATE TABLE "AiSession" (
+    "id" TEXT NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "sessionId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AiSession_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AiMessage" (
+    "id" TEXT NOT NULL,
+    "sessionId" TEXT NOT NULL,
+    "description" TEXT,
+    "currentStep" TEXT NOT NULL,
+    "location" TEXT,
+    "startDate" TIMESTAMP(3),
+    "endDate" TIMESTAMP(3),
+    "travelers" INTEGER,
+    "budget" TEXT,
+    "experience" TEXT,
+    "citizenship" TEXT,
+    "passengers" INTEGER,
+    "passengerPreferences" TEXT,
+    "tripCard" JSONB,
+    "tripGuide" JSONB,
+    "submitted" BOOLEAN NOT NULL DEFAULT false,
+    "checkoutRequired" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "clientMessage" TEXT NOT NULL,
+    "aiMessage" TEXT NOT NULL,
+    "extractedData" JSONB,
+
+    CONSTRAINT "AiMessage_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Destination" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
@@ -91,6 +130,12 @@ CREATE TABLE "User" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "AiSession_sessionId_key" ON "AiSession"("sessionId");
+
+-- CreateIndex
+CREATE INDEX "AiMessage_sessionId_idx" ON "AiMessage"("sessionId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "SubscriptionPlan_name_key" ON "SubscriptionPlan"("name");
 
 -- CreateIndex
@@ -98,6 +143,12 @@ CREATE UNIQUE INDEX "UserSubscription_userId_planId_key" ON "UserSubscription"("
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- AddForeignKey
+ALTER TABLE "AiSession" ADD CONSTRAINT "AiSession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AiMessage" ADD CONSTRAINT "AiMessage_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "AiSession"("sessionId") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "UserSubscription" ADD CONSTRAINT "UserSubscription_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

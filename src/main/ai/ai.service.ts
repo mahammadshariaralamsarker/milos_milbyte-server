@@ -1,13 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PrismaService } from 'src/config/prisma/prisma.service';
 import { CreateAiDto } from './dto/create-ai.dto';
-import { UpdateAiDto } from './dto/update-ai.dto';
-import axios from "axios";
+import { SendMessageDto } from './dto/send-message.dto';
 import { aiResponse } from 'src/config/ai/ai-response';
 
 @Injectable()
 export class AiService {
   constructor(private prisma: PrismaService) { }
+
 
   async createAIResponse(createAiDto: CreateAiDto, userId: number) {
     const userExists = await this.prisma.user.findUnique({
@@ -28,95 +29,196 @@ export class AiService {
       throw new NotFoundException('No active subscription plan found for the user');
     }
 
-
-    const payload = {
-      message: createAiDto.message,
-      session_id: String(userId),
-      user_id: String(userId),
-      subscription_plan: activeSubscriptionPlan.planType.toUpperCase()
-    }
-
-
-    const aiResponsedata = await aiResponse(payload);
-
-    const savedResponse = await this.prisma.aiSession.create({
+    const session = await this.prisma.aiSession.create({
       data: {
-        sessionId: payload.session_id,
-        user: { connect: { id: userId } },
-        currentStep: aiResponsedata?.current_step || 'location',
-        aiMessage: aiResponsedata?.ai_message || '',
-        location: aiResponsedata?.location,
-        startDate: aiResponsedata?.start_date,
-        endDate: aiResponsedata?.end_date,
-        budget: aiResponsedata?.budget,
-        experience: aiResponsedata?.experience,
-        citizenship: aiResponsedata?.citizenship,
-        passengers: aiResponsedata?.passengers,
-        passengerPreferences: aiResponsedata?.preferences,
-        tripCard: aiResponsedata?.trip_cards,
-        tripGuide: aiResponsedata?.trip_guide,
-        submitted: aiResponsedata?.submitted || false,
-        checkoutRequired: aiResponsedata?.checkout_required || false,
-        clientMessage: createAiDto.message,
-      }
-    })
-
-    return {
-      session_id: savedResponse.sessionId,
-      user_id: String(savedResponse.userId),
-      client_message: savedResponse.clientMessage,
-      ai_message: savedResponse.aiMessage,
-      current_step: savedResponse.currentStep,
-      parameters_extracted: {
-        location: savedResponse.location,
-        start_date: savedResponse.startDate,
-        end_date: savedResponse.endDate,
-        travelers: savedResponse.travelers,
-        budget: savedResponse.budget,
-        experience: savedResponse.experience,
-        citizenship: savedResponse.citizenship,
-        passengers: savedResponse.passengers,
-        passenger_preferences: savedResponse.passengerPreferences,
+        userId,
+        sessionId: randomUUID(),
       },
-      trip_card: savedResponse.tripCard,
-      trip_guide: savedResponse.tripGuide,
-      submitted: savedResponse.submitted,
-      checkout_required: savedResponse.checkoutRequired,
-    };
+    });
+
+    // Send message to this session
+    return await this.sendMessageToSession(userId, session.sessionId, {
+      message: createAiDto.message,
+    });
   }
 
-  async findAllChat(userId: number) {
-    const data = await this.prisma.aiSession.findMany({
+
+  async sendMessageToSession(
+    userId: number,
+    sessionId: string,
+    sendMessageDto: SendMessageDto,
+  ) {
+    const session = await this.prisma.aiSession.findFirst({
+      where: {
+        sessionId,
+        userId,
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Session not found');
+    }
+
+    const userExists = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!userExists) {
+      throw new NotFoundException('User not found');
+    }
+
+    const activeSubscriptionPlan = await this.prisma.userSubscription.findFirst({
       where: { userId },
+    });
+
+    if (!activeSubscriptionPlan) {
+      throw new NotFoundException('No active subscription plan found for the user');
+    }
+
+    // Prepare payload for AI response
+    const payload = {
+      message: sendMessageDto.message,
+      session_id: session.sessionId,
+      user_id: String(userId),
+      // subscription_plan: activeSubscriptionPlan.planType.toUpperCase(),
+      subscription_plan: 'pro'
+    };
+
+
+    // Get AI response
+    const aiResponseData = await aiResponse(payload);
+    if (aiResponseData.rate_limit_exceeded === true) {
+      throw new Error('Rate limit exceeded');
+    }
+    console.log({ aiResponseData });
+    // Save the message exchange
+
+    const message = await this.prisma.aiMessage.create({
+      data: {
+        sessionId: session.sessionId,
+        description: aiResponseData?.description,
+        currentStep: aiResponseData?.current_step || 'location',
+        // location: aiResponseData?.location,
+        // startDate: aiResponseData?.start_date,
+        // endDate: aiResponseData?.end_date,
+        // budget: aiResponseData?.budget,
+        // experience: aiResponseData?.experience,
+        // citizenship: aiResponseData?.citizenship,
+        // passengers: aiResponseData?.passengers,
+        // passengerPreferences: aiResponseData?.preferences || aiResponseData?.parameters_extracted?.passenger_preferences,
+        // parameters_extracted: aiResponseData?.parameters_extracted,
+        tripCard: aiResponseData?.trip_cards,
+        tripGuide: aiResponseData?.trip_guide,
+        submitted: aiResponseData?.submitted ?? false,
+        checkoutRequired: aiResponseData?.checkout_required ?? false,
+        clientMessage: sendMessageDto.message,
+        aiMessage: aiResponseData?.ai_message || '',
+        extractedData: aiResponseData?.parameters_extracted,
+      },
+    });
+
+    return message;
+  }
+
+  async getAllSessions(userId: number) {
+    const sessions = await this.prisma.aiSession.findMany({
+      where: { userId },
+      select: {
+        sessionId: true,
+        createdAt: true,
+        updatedAt: true,
+        messages: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            clientMessage: true,
+            aiMessage: true,
+            createdAt: true,
+          },
+        }
+      },
       orderBy: { createdAt: 'desc' },
     });
 
-    return data.map((session) => ({
+    return sessions.map((session) => ({
+      session_id: session.sessionId,
+      created_at: session.createdAt,
+      updated_at: session.updatedAt,
+      last_client_message: session.messages.length > 0 ? session.messages[session.messages.length - 1].clientMessage : null,
+      last_ai_message: session.messages.length > 0 ? session.messages[session.messages.length - 1].aiMessage : null,
+      message_count: session.messages.length,
+    }));
+  }
+
+  /**
+   * Get a specific session with all its messages
+   */
+  async getSessionAllMessagesById(userId: number, sessionId: string) {
+    const session = await this.prisma.aiSession.findFirst({
+      where: {
+        sessionId,
+        userId,
+      },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Session not found');
+    }
+
+    return session.messages.map((message) => ({
       session_id: session.sessionId,
       user_id: String(session.userId),
-      client_message: session.clientMessage,
-      ai_message: session.aiMessage,
-      current_step: session.currentStep,
+      description: message.description,
+      client_message: message.clientMessage,
+      ai_message: message.aiMessage,
+      current_step: message.currentStep,
       parameters_extracted: {
-        location: session.location,
-        start_date: session.startDate,
-        end_date: session.endDate,
-        travelers: session.travelers,
-        budget: session.budget,
-        experience: session.experience,
-        citizenship: session.citizenship,
-        passengers: session.passengers,
-        passenger_preferences: session.passengerPreferences,
+        // location: message.location,
+        // start_date: message.startDate,
+        // end_date: message.endDate,
+        // travelers: message.travelers,
+        // budget: message.budget,
+        // experience: message.experience,
+        // citizenship: message.citizenship,
+        // passengers: message.passengers,
+        passenger_preferences: message.passengerPreferences,
       },
-      trip_card: session.tripCard,
-      trip_guide: session.tripGuide,
-      submitted: session.submitted,
-      checkout_required: session.checkoutRequired,
+      trip_card: message.tripCard,
+      trip_guide: message.tripGuide,
+      submitted: message.submitted,
+      checkout_required: message.checkoutRequired,
+      created_at: message.createdAt,
+      updated_at: message.updatedAt,
     }));
   }
 
 
 
+  /**
+   * Delete a session
+   */
+  async deleteSession(userId: number, sessionId: string) {
+    const session = await this.prisma.aiSession.findFirst({
+      where: {
+        sessionId,
+        userId,
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Session not found');
+    }
+
+    await this.prisma.aiSession.delete({
+      where: { sessionId },
+    });
+
+    return { message: 'Session deleted successfully', sessionId };
+  }
 
 
 }
