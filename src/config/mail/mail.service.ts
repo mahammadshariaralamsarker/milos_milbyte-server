@@ -54,7 +54,11 @@ export class MailService {
     const bodyLines = [
       `Hello ${params.name},`,
       '',
-      this.buildActionLine(params.action, params.planName, params.previousPlanName),
+      this.buildActionLine(
+        params.action,
+        params.planName,
+        params.previousPlanName,
+      ),
       params.periodEnd
         ? `Current billing period ends on ${params.periodEnd.toISOString()}.`
         : null,

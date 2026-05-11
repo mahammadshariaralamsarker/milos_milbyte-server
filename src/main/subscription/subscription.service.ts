@@ -141,7 +141,9 @@ export class SubscriptionService {
     });
 
     if (!user) {
-      this.logger.warn(`User not found while syncing Stripe subscription ${stripeSubscription.id}`);
+      this.logger.warn(
+        `User not found while syncing Stripe subscription ${stripeSubscription.id}`,
+      );
       return null;
     }
 
@@ -177,15 +179,15 @@ export class SubscriptionService {
       );
 
     const status =
-      forcedStatus ?? this.mapStripeSubscriptionStatus(stripeSubscription.status);
+      forcedStatus ??
+      this.mapStripeSubscriptionStatus(stripeSubscription.status);
 
-    const currentUserSubscription = await this.prisma.userSubscription.findFirst(
-      {
+    const currentUserSubscription =
+      await this.prisma.userSubscription.findFirst({
         where: { userId },
         include: { plan: true },
         orderBy: { createdAt: 'desc' },
-      },
-    );
+      });
 
     const payload = {
       userId,
@@ -195,8 +197,7 @@ export class SubscriptionService {
       stripeSubscriptionId: stripeSubscription.id,
       currentPeriodStart: periodDates.currentPeriodStart,
       currentPeriodEnd: periodDates.currentPeriodEnd,
-      cancelledAt:
-        status === SubscriptionStatus.CANCELLED ? new Date() : null,
+      cancelledAt: status === SubscriptionStatus.CANCELLED ? new Date() : null,
     };
 
     if (currentUserSubscription) {
@@ -248,7 +249,10 @@ export class SubscriptionService {
 
   private async sendSubscriptionEmailNotification(params: {
     user: { email: string; firstName?: string | null };
-    currentSubscription: { plan: { name: string }; currentPeriodEnd: Date | null };
+    currentSubscription: {
+      plan: { name: string };
+      currentPeriodEnd: Date | null;
+    };
     action: 'created' | 'upgraded' | 'renewed' | 'failed' | 'cancelled';
     previousSubscription?: { plan?: { name: string } | null } | null;
   }) {
@@ -269,9 +273,7 @@ export class SubscriptionService {
     }
   }
 
-  private async cancelPreviousSubscriptionIfNeeded(
-    stripeSubscription: any,
-  ) {
+  private async cancelPreviousSubscriptionIfNeeded(stripeSubscription: any) {
     const previousSubscriptionId =
       stripeSubscription.metadata?.upgradeFromSubscriptionId;
 
@@ -605,7 +607,8 @@ export class SubscriptionService {
         customerId,
         userId: String(userId),
         subscriptionPlanId: String(newPlan.id),
-        upgradeFromSubscriptionId: currentSubscription.stripeSubscriptionId || '',
+        upgradeFromSubscriptionId:
+          currentSubscription.stripeSubscriptionId || '',
       },
       subscription_data: {
         metadata: {
@@ -696,10 +699,14 @@ export class SubscriptionService {
           break;
         }
 
-        const sessionSubscriptionId = this.extractStripeId(session.subscription);
+        const sessionSubscriptionId = this.extractStripeId(
+          session.subscription,
+        );
 
         if (!sessionSubscriptionId) {
-          this.logger.warn('Checkout session completed without subscription id');
+          this.logger.warn(
+            'Checkout session completed without subscription id',
+          );
           break;
         }
 
@@ -707,7 +714,12 @@ export class SubscriptionService {
           sessionSubscriptionId,
         );
 
-        await this.syncSubscriptionFromStripe(stripeSubscription, undefined, undefined, false);
+        await this.syncSubscriptionFromStripe(
+          stripeSubscription,
+          undefined,
+          undefined,
+          false,
+        );
         break;
       }
 
@@ -719,11 +731,15 @@ export class SubscriptionService {
           break;
         }
 
-        const stripeSubscription = await this.stripe.subscriptions.retrieve(
-          subscriptionId,
-        );
+        const stripeSubscription =
+          await this.stripe.subscriptions.retrieve(subscriptionId);
 
-        await this.syncSubscriptionFromStripe(stripeSubscription, invoice, undefined, true);
+        await this.syncSubscriptionFromStripe(
+          stripeSubscription,
+          invoice,
+          undefined,
+          true,
+        );
         await this.cancelPreviousSubscriptionIfNeeded(stripeSubscription);
         break;
       }
@@ -736,9 +752,8 @@ export class SubscriptionService {
           break;
         }
 
-        const stripeSubscription = await this.stripe.subscriptions.retrieve(
-          subscriptionId,
-        );
+        const stripeSubscription =
+          await this.stripe.subscriptions.retrieve(subscriptionId);
 
         await this.syncSubscriptionFromStripe(
           stripeSubscription,
@@ -753,7 +768,12 @@ export class SubscriptionService {
       case 'customer.subscription.updated': {
         const stripeSubscription = event.data.object as any;
 
-        await this.syncSubscriptionFromStripe(stripeSubscription, undefined, undefined, false);
+        await this.syncSubscriptionFromStripe(
+          stripeSubscription,
+          undefined,
+          undefined,
+          false,
+        );
         break;
       }
 

@@ -1,5 +1,6 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, Res } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { AppService } from './app.service';
 
 @ApiTags('Public')
@@ -8,9 +9,10 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Root health message' })
-  getHello(): { message: string } {
-    return this.appService.getHello();
+  @ApiOperation({ summary: 'API landing page' })
+  getLandingPage(@Res() res: Response): void {
+    res.setHeader('Content-Type', 'text/html');
+    res.send(this.appService.getLandingPage());
   }
 
   @Get('health')

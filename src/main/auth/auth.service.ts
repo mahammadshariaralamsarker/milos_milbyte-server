@@ -27,7 +27,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) { }
+  ) {}
 
   // ================= REGISTER =================
 
@@ -260,7 +260,9 @@ export class AuthService {
 
   // ================= UTIL =================
   private sanitizeUser<T extends { password: string }>(user: T) {
-    const { password, ...safeUser } = (user as unknown) as { password?: string } & Record<string, any>;
+    const { password, ...safeUser } = user as unknown as {
+      password?: string;
+    } & Record<string, any>;
     return safeUser;
   }
 

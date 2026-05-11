@@ -1,4 +1,14 @@
-import { Controller, Post, Body, UseGuards, Req, Get, Param, Put, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  Get,
+  Param,
+  Put,
+  Delete,
+} from '@nestjs/common';
 import { AiService } from './ai.service';
 import { CreateAiDto } from './dto/create-ai.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
@@ -7,17 +17,21 @@ import { UserRoles } from '@prisma/client';
 import { Roles } from 'src/main/auth/decorators/roles.decorator';
 import { AuthGuard } from 'src/main/auth/guards/auth.guard';
 import { RolesGuard } from 'src/main/auth/guards/roles.guard';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
-
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+} from '@nestjs/swagger';
 
 @ApiTags('AI')
 @Controller('ai')
 export class AiController {
-  constructor(private readonly aiService: AiService) { }
+  constructor(private readonly aiService: AiService) {}
 
   /**
-  * Create AI response (legacy - creates a new session and sends message)
-  */
+   * Create AI response (legacy - creates a new session and sends message)
+   */
   @Post('generate-ai-response-new-session')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(UserRoles.CLIENT)
@@ -26,8 +40,6 @@ export class AiController {
   async createAIResponse(@Body() createAiDto: CreateAiDto, @Req() req) {
     return await this.aiService.createAIResponse(createAiDto, req.user.sub);
   }
-
-
 
   /**
    * Send a message to a specific session
@@ -43,9 +55,12 @@ export class AiController {
     @Body() sendMessageDto: SendMessageDto,
     @Req() req,
   ) {
-    return await this.aiService.sendMessageToSession(req.user.sub, sessionId, sendMessageDto);
+    return await this.aiService.sendMessageToSession(
+      req.user.sub,
+      sessionId,
+      sendMessageDto,
+    );
   }
-
 
   @Get('sessions')
   @UseGuards(AuthGuard, RolesGuard)
@@ -66,9 +81,11 @@ export class AiController {
   @ApiOperation({ summary: 'Get a specific session with all messages' })
   @ApiParam({ name: 'sessionId', description: 'The ID of the session' })
   async getSessionById(@Param('sessionId') sessionId: string, @Req() req) {
-    return await this.aiService.getSessionAllMessagesById(req.user.sub, sessionId);
+    return await this.aiService.getSessionAllMessagesById(
+      req.user.sub,
+      sessionId,
+    );
   }
-
 
   /**
    * Delete a session
@@ -83,10 +100,5 @@ export class AiController {
     return await this.aiService.deleteSession(req.user.sub, sessionId);
   }
 
-
-
   // ===== Legacy Routes (for backward compatibility) =====
-
-
 }
-

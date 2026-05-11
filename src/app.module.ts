@@ -30,4 +30,4 @@ import { HelpRequestModule } from './main/help-request/help-request.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

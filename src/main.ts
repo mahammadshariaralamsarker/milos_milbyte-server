@@ -19,10 +19,10 @@ async function bootstrap() {
   //   credentials: true,
   // });
 
-app.enableCors({
-  origin: '*',
-  credentials: false,
-});
+  app.enableCors({
+    origin: '*',
+    credentials: false,
+  });
 
   // Serve uploads directory with /uploads prefix
   app.useStaticAssets(join(process.cwd(), 'uploads'), {

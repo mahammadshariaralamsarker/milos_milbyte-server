@@ -7,10 +7,8 @@ export class UpdateProfileDto {
   @ApiPropertyOptional({ example: 'Doe' })
   lastName?: string;
 
-
   @ApiPropertyOptional({ example: '+1234567890' })
   phoneNumber?: string;
-
 
   @ApiPropertyOptional({ example: 'Banani 1/2  ' })
   address?: string;
@@ -25,7 +23,4 @@ export class UpdateProfileDto {
   zipCode?: string;
   @ApiPropertyOptional({ example: 'Bangladesh ' })
   country?: string;
-
-
-
 }

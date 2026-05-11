@@ -11,9 +11,7 @@ type MonthlyCountRow = {
 
 @Injectable()
 export class AdminService {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   private buildMonthlySeries(rows: MonthlyCountRow[]) {
     const months = [
@@ -41,11 +39,7 @@ export class AdminService {
     });
   }
 
-
-
   async overview() {
-
-
     const totalUsers = await this.prisma.user.count();
     const totalActiveSubscriptions = await this.prisma.userSubscription.count({
       where: {
@@ -81,7 +75,9 @@ export class AdminService {
       ORDER BY 1
     `;
 
-    const monthlySubscriberRows = await this.prisma.$queryRaw<MonthlyCountRow[]>`
+    const monthlySubscriberRows = await this.prisma.$queryRaw<
+      MonthlyCountRow[]
+    >`
       SELECT
         EXTRACT(MONTH FROM "createdAt")::int AS month,
         COUNT(*)::int AS count
@@ -93,7 +89,6 @@ export class AdminService {
       ORDER BY 1
     `;
 
-
     return {
       totalUsers,
       totalActiveSubscriptions,
@@ -101,8 +96,6 @@ export class AdminService {
       monthlyUsers: this.buildMonthlySeries(monthlyUserRows),
       monthlySubscribers: this.buildMonthlySeries(monthlySubscriberRows),
     };
-
-
   }
 
   async userManagement(filters: {
@@ -186,7 +179,6 @@ export class AdminService {
   }
 
   async blockUser(userId: number) {
-
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -224,7 +216,6 @@ export class AdminService {
   }
 
   async deleteUser(userId: number) {
-
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -243,8 +234,7 @@ export class AdminService {
 
     return {
       message: 'User deleted (soft) successfully',
-      data
-    }
+      data,
+    };
   }
-
 }

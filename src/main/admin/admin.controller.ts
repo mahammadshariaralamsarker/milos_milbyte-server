@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { UserFilterDto } from './dto/user-filter.dto';
@@ -9,7 +19,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { ApiBearerAuth } from '@nestjs/swagger';
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) { }
+  constructor(private readonly adminService: AdminService) {}
 
   @Get('overview')
   @UseGuards(AuthGuard, RolesGuard)
@@ -51,6 +61,4 @@ export class AdminController {
     await this.adminService.deleteUser(Number(id));
     return { message: 'User deleted (soft) successfully' };
   }
-
-
 }

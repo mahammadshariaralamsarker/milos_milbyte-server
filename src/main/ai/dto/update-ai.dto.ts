@@ -1,3 +1,1 @@
-
-
-export class UpdateAiDto { }
+export class UpdateAiDto {}

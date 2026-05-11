@@ -7,8 +7,7 @@ import { aiResponse } from 'src/config/ai/ai-response';
 
 @Injectable()
 export class AiService {
-  constructor(private prisma: PrismaService) { }
-
+  constructor(private prisma: PrismaService) {}
 
   async createAIResponse(createAiDto: CreateAiDto, userId: number) {
     const userExists = await this.prisma.user.findUnique({
@@ -19,14 +18,18 @@ export class AiService {
       throw new NotFoundException('User not found');
     }
 
-    const activeSubscriptionPlan = await this.prisma.userSubscription.findFirst({
-      where: {
-        userId: userId,
+    const activeSubscriptionPlan = await this.prisma.userSubscription.findFirst(
+      {
+        where: {
+          userId: userId,
+        },
       },
-    });
+    );
 
     if (!activeSubscriptionPlan) {
-      throw new NotFoundException('No active subscription plan found for the user');
+      throw new NotFoundException(
+        'No active subscription plan found for the user',
+      );
     }
 
     const session = await this.prisma.aiSession.create({
@@ -41,7 +44,6 @@ export class AiService {
       message: createAiDto.message,
     });
   }
-
 
   async sendMessageToSession(
     userId: number,
@@ -67,12 +69,16 @@ export class AiService {
       throw new NotFoundException('User not found');
     }
 
-    const activeSubscriptionPlan = await this.prisma.userSubscription.findFirst({
-      where: { userId },
-    });
+    const activeSubscriptionPlan = await this.prisma.userSubscription.findFirst(
+      {
+        where: { userId },
+      },
+    );
 
     if (!activeSubscriptionPlan) {
-      throw new NotFoundException('No active subscription plan found for the user');
+      throw new NotFoundException(
+        'No active subscription plan found for the user',
+      );
     }
 
     // Prepare payload for AI response
@@ -81,9 +87,8 @@ export class AiService {
       session_id: session.sessionId,
       user_id: String(userId),
       // subscription_plan: activeSubscriptionPlan.planType.toUpperCase(),
-      subscription_plan: 'pro'
+      subscription_plan: 'pro',
     };
-
 
     // Get AI response
     const aiResponseData = await aiResponse(payload);
@@ -125,7 +130,7 @@ export class AiService {
             aiMessage: true,
             createdAt: true,
           },
-        }
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -134,8 +139,14 @@ export class AiService {
       session_id: session.sessionId,
       created_at: session.createdAt,
       updated_at: session.updatedAt,
-      last_client_message: session.messages.length > 0 ? session.messages[session.messages.length - 1].clientMessage : null,
-      last_ai_message: session.messages.length > 0 ? session.messages[session.messages.length - 1].aiMessage : null,
+      last_client_message:
+        session.messages.length > 0
+          ? session.messages[session.messages.length - 1].clientMessage
+          : null,
+      last_ai_message:
+        session.messages.length > 0
+          ? session.messages[session.messages.length - 1].aiMessage
+          : null,
       message_count: session.messages.length,
     }));
   }
@@ -187,8 +198,6 @@ export class AiService {
     }));
   }
 
-
-
   /**
    * Delete a session
    */
@@ -210,6 +219,4 @@ export class AiService {
 
     return { message: 'Session deleted successfully', sessionId };
   }
-
-
 }
