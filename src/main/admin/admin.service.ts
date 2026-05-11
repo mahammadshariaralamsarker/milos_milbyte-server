@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { PrismaService } from 'src/config/prisma/prisma.service';
@@ -12,8 +12,8 @@ type MonthlyCountRow = {
 @Injectable()
 export class AdminService {
   constructor(
-   private readonly prisma: PrismaService,
-  ) {}
+    private readonly prisma: PrismaService,
+  ) { }
 
   private buildMonthlySeries(rows: MonthlyCountRow[]) {
     const months = [
@@ -43,10 +43,10 @@ export class AdminService {
 
 
 
-  async overview( ) { 
+  async overview() {
 
 
-    const totalUsers = await this.prisma.user.count(); 
+    const totalUsers = await this.prisma.user.count();
     const totalActiveSubscriptions = await this.prisma.userSubscription.count({
       where: {
         status: SubscriptionStatus.ACTIVE,
@@ -92,7 +92,7 @@ export class AdminService {
       GROUP BY 1
       ORDER BY 1
     `;
- 
+
 
     return {
       totalUsers,
@@ -118,11 +118,12 @@ export class AdminService {
 
     // Build where conditions
     const whereCondition: any = {};
-    
+
     if (filters.search) {
       whereCondition.OR = [
         { email: { contains: filters.search, mode: 'insensitive' } },
-        { name: { contains: filters.search, mode: 'insensitive' } },
+        { firstName: { contains: filters.search, mode: 'insensitive' } },
+        { lastName: { contains: filters.search, mode: 'insensitive' } },
       ];
     }
 
@@ -150,31 +151,31 @@ export class AdminService {
     if (filters.status || filters.tier) {
       userList = userList.filter((user) => {
         const latestSubscription = user.subscriptions?.[0];
-        
+
         if (!latestSubscription) return false;
-        
+
         if (filters.status && latestSubscription.status !== filters.status) {
           return false;
         }
-        
+
         if (filters.tier && latestSubscription.planType !== filters.tier) {
           return false;
         }
-        
+
         return true;
       });
     }
 
     // Get total count for pagination
     let totalCount = await this.prisma.user.count({ where: whereCondition });
-    
+
     // Adjust total count if filters were applied (post-fetch filtering)
     if (filters.status || filters.tier) {
       totalCount = userList.length;
     }
 
     return {
-      data: userList,
+      userList,
       pagination: {
         page,
         limit,
@@ -183,5 +184,67 @@ export class AdminService {
       },
     };
   }
- 
+
+  async blockUser(userId: number) {
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.isBolocked) {
+      throw new NotFoundException('User is already blocked');
+    }
+
+    return await this.prisma.user.update({
+      where: { id: userId },
+      data: { isBolocked: true },
+    });
+  }
+
+  async unblockUser(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.isBolocked) {
+      throw new NotFoundException('User is already unblocked');
+    }
+    return await this.prisma.user.update({
+      where: { id: userId },
+      data: { isBolocked: false },
+    });
+  }
+
+  async deleteUser(userId: number) {
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.isDeleted) {
+      throw new NotFoundException('User is already deleted');
+    }
+
+    const data = await this.prisma.user.update({
+      where: { id: userId },
+      data: { isDeleted: true },
+    });
+
+    return {
+      message: 'User deleted (soft) successfully',
+      data
+    }
+  }
+
 }

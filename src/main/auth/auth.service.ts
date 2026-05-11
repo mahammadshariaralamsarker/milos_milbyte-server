@@ -27,7 +27,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+  ) { }
 
   // ================= REGISTER =================
 
@@ -45,7 +45,7 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         email: registerDto.email,
-        name: registerDto.name,
+        firstName: registerDto.name,
         password: passwordHash,
         role: registerDto.role ?? UserRoles.CLIENT,
       },
@@ -241,11 +241,14 @@ export class AuthService {
     const updatedUser = await this.prisma.user.update({
       where: { id: Number(userId) },
       data: {
-        name:
-          updateData.firstName && updateData.lastName
-            ? `${updateData.firstName} ${updateData.lastName}`
-            : user.name,
-        profilePicture: updateData.filename || user.profilePicture,
+        firstName: updateData.firstName ?? user.firstName,
+        lastName: updateData.lastName ?? user.lastName,
+        phoneNumber: updateData.phoneNumber ?? user.phoneNumber,
+        adress: updateData.address ?? user.adress,
+        city: updateData.city ?? user.city,
+        state: updateData.state ?? user.state,
+        zipCode: updateData.zipCode ?? user.zipCode,
+        country: updateData.country ?? user.country,
       },
     });
 
@@ -257,7 +260,7 @@ export class AuthService {
 
   // ================= UTIL =================
   private sanitizeUser<T extends { password: string }>(user: T) {
-    const { ...safeUser } = user;
+    const { password, ...safeUser } = (user as unknown) as { password?: string } & Record<string, any>;
     return safeUser;
   }
 

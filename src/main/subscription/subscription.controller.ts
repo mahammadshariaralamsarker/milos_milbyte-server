@@ -36,7 +36,7 @@ type AuthenticatedRequest = Request & {
 @ApiTags('Subscriptions')
 @Controller('subscriptions')
 export class SubscriptionController {
-  constructor(private readonly subscriptionService: SubscriptionService) {}
+  constructor(private readonly subscriptionService: SubscriptionService) { }
 
   // =================== ADMIN ROUTES ===================
 

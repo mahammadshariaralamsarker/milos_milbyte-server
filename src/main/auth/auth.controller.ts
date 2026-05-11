@@ -16,6 +16,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfilePictureDto } from './dto/update-profile-picture.dto';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UserRoles } from '@prisma/client';
 
@@ -30,7 +31,7 @@ type AuthenticatedRequest = Request & {
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   // ================= REGISTER =================
   @ApiTags('Public')
@@ -62,7 +63,7 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update current user profile' })
-  @Get('change-profile-data')
+  @Patch('me')
   async profileUpdate(
     @Req() req: AuthenticatedRequest,
     @Body() updateData: UpdateProfileDto,

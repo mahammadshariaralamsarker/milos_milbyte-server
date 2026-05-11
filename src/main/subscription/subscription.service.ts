@@ -94,7 +94,7 @@ export class SubscriptionService {
 
     const customer = await this.stripeService.getOrCreateCustomer(
       user.email,
-      user.name,
+      user.firstName + ' ' + user.lastName,
     );
 
     await this.prisma.user.update({
@@ -247,7 +247,7 @@ export class SubscriptionService {
   }
 
   private async sendSubscriptionEmailNotification(params: {
-    user: { email: string; name: string };
+    user: { email: string; firstName?: string | null };
     currentSubscription: { plan: { name: string }; currentPeriodEnd: Date | null };
     action: 'created' | 'upgraded' | 'renewed' | 'failed' | 'cancelled';
     previousSubscription?: { plan?: { name: string } | null } | null;
@@ -255,7 +255,7 @@ export class SubscriptionService {
     try {
       await this.mailService.sendSubscriptionEmail({
         to: params.user.email,
-        name: params.user.name,
+        name: params.user.firstName ?? '',
         action: params.action,
         planName: params.currentSubscription.plan.name,
         previousPlanName: params.previousSubscription?.plan?.name ?? null,
@@ -428,7 +428,8 @@ export class SubscriptionService {
           select: {
             id: true,
             email: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             role: true,
             profilePicture: true,
             stripeCustomerId: true,
@@ -524,7 +525,7 @@ export class SubscriptionService {
         metadata: {
           customerId,
           userId: String(user.id),
-          subscriptionPlanId: String(plan.id),             
+          subscriptionPlanId: String(plan.id),
         },
       },
     });

@@ -27,5 +27,30 @@ export class AdminController {
     return await this.adminService.userManagement(filters);
   }
 
- 
+  @Patch('users/:id/block')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRoles.SUPERADMIN, UserRoles.ADMIN)
+  @ApiBearerAuth()
+  async blockUser(@Param('id') id: string) {
+    return await this.adminService.blockUser(Number(id));
+  }
+
+  @Patch('users/:id/unblock')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRoles.SUPERADMIN, UserRoles.ADMIN)
+  @ApiBearerAuth()
+  async unblockUser(@Param('id') id: string) {
+    return await this.adminService.unblockUser(Number(id));
+  }
+
+  @Delete('users/:id')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRoles.SUPERADMIN, UserRoles.ADMIN)
+  @ApiBearerAuth()
+  async deleteUser(@Param('id') id: string) {
+    await this.adminService.deleteUser(Number(id));
+    return { message: 'User deleted (soft) successfully' };
+  }
+
+
 }

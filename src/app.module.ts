@@ -24,9 +24,7 @@ import { HelpRequestModule } from './main/help-request/help-request.module';
     SubscriptionModule,
     HelpRequestModule,
     SubscriptionPeriodModule,
-
     AdminModule,
-
     AiModule,
   ],
   controllers: [AppController],

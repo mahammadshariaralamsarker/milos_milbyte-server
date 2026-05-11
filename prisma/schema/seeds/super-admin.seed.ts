@@ -24,7 +24,8 @@ export async function seedSuperAdmin(prisma: PrismaClient) {
       await prisma.user.update({
         where: { id: existing.id },
         data: {
-          name,
+          firstName: name.split(' ')[0],
+          lastName: name.split(' ').slice(1).join(' '),
           role: UserRoles.SUPERADMIN,
         },
       });
@@ -40,7 +41,8 @@ export async function seedSuperAdmin(prisma: PrismaClient) {
     const user = await prisma.user.create({
       data: {
         email,
-        name,
+        firstName: name.split(' ')[0],
+        lastName: name.split(' ').slice(1).join(' '),
         password,
         role: UserRoles.SUPERADMIN,
       },

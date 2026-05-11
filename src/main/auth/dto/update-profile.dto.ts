@@ -1,10 +1,31 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { UpdateProfilePictureDto } from './update-profile-picture.dto';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export class UpdateProfileDto extends UpdateProfilePictureDto {
-  @ApiProperty({ required: false, example: 'John' })
+export class UpdateProfileDto {
+  @ApiPropertyOptional({ example: 'John' })
   firstName?: string;
 
-  @ApiProperty({ required: false, example: 'Doe' })
+  @ApiPropertyOptional({ example: 'Doe' })
   lastName?: string;
+
+
+  @ApiPropertyOptional({ example: '+1234567890' })
+  phoneNumber?: string;
+
+
+  @ApiPropertyOptional({ example: 'Banani 1/2  ' })
+  address?: string;
+
+  @ApiPropertyOptional({ example: 'Dhaka ' })
+  city?: string;
+
+  @ApiPropertyOptional({ example: 'Gulsan  ' })
+  state?: string;
+
+  @ApiPropertyOptional({ example: '5620 ' })
+  zipCode?: string;
+  @ApiPropertyOptional({ example: 'Bangladesh ' })
+  country?: string;
+
+
+
 }
