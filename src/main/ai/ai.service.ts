@@ -95,8 +95,11 @@ export class AiService {
     if (aiResponseData.rate_limit_exceeded === true) {
       throw new Error('Rate limit exceeded');
     }
-    console.log({ aiResponseData });
-    // Save the message exchange
+
+    // attach client message into the AI response payload
+    try {
+      (aiResponseData as any).client_message = sendMessageDto.message;
+    } catch { }
 
     const message = await this.prisma.aiMessage.create({
       data: {
@@ -112,8 +115,35 @@ export class AiService {
         extractedData: aiResponseData?.parameters_extracted,
       },
     });
+    // include stored message id in response object
+    try {
+      (aiResponseData as any).message_id = message.id;
+    } catch { }
 
-    return message;
+    return aiResponseData;
+    // return {
+    //   session_id: session.sessionId,
+    //   user_id: String(userId),
+    //   ai_message: aiResponseData?.ai_message || '',
+    //   current_step: aiResponseData?.current_step || 'location',
+    //   parameters_extracted: {
+    //     location: aiResponseData?.parameters_extracted?.location || null,
+    //     start_date: aiResponseData?.parameters_extracted?.start_date || null,
+    //     end_date: aiResponseData?.parameters_extracted?.end_date || null,
+    //     travelers: aiResponseData?.parameters_extracted?.travelers || null,
+    //     budget: aiResponseData?.parameters_extracted?.budget || null,
+    //     experience: aiResponseData?.parameters_extracted?.experience || null,
+    //     citizenship: aiResponseData?.parameters_extracted?.citizenship || null,
+    //     passengers: aiResponseData?.parameters_extracted?.passengers || null,
+    //     passenger_preferences: aiResponseData?.parameters_extracted?.passenger_preferences || null,
+    //   },
+    //   trip_card: aiResponseData?.trip_cards || null,
+    //   trip_guide: aiResponseData?.trip_guide || null,
+    //   submitted: aiResponseData?.submitted ?? false,
+    //   checkout_required: aiResponseData?.checkout_required ?? false,
+    //   rate_limit_exceeded: aiResponseData?.rate_limit_exceeded ?? false,
+    //   message_id: message.id,
+    // };
   }
 
   async getAllSessions(userId: number) {
@@ -171,31 +201,35 @@ export class AiService {
       throw new NotFoundException('Session not found');
     }
 
-    return session.messages.map((message) => ({
-      session_id: session.sessionId,
-      user_id: String(session.userId),
-      description: message.description,
-      client_message: message.clientMessage,
-      ai_message: message.aiMessage,
-      current_step: message.currentStep,
-      parameters_extracted: {
-        // location: message.location,
-        // start_date: message.startDate,
-        // end_date: message.endDate,
-        // travelers: message.travelers,
-        // budget: message.budget,
-        // experience: message.experience,
-        // citizenship: message.citizenship,
-        // passengers: message.passengers,
-        passenger_preferences: message.passengerPreferences,
-      },
-      trip_card: message.tripCard,
-      trip_guide: message.tripGuide,
-      submitted: message.submitted,
-      checkout_required: message.checkoutRequired,
-      created_at: message.createdAt,
-      updated_at: message.updatedAt,
-    }));
+    return session.messages.map((message) => {
+      const extractedData = message.extractedData as any || {};
+      return {
+        session_id: session.sessionId,
+        user_id: String(session.userId),
+        ai_message: message.aiMessage,
+        current_step: message.currentStep,
+        parameters_extracted: {
+          location: extractedData?.location || null,
+          start_date: extractedData?.start_date || null,
+          end_date: extractedData?.end_date || null,
+          travelers: extractedData?.travelers || null,
+          budget: extractedData?.budget || null,
+          experience: extractedData?.experience || null,
+          citizenship: extractedData?.citizenship || null,
+          passengers: extractedData?.passengers || null,
+          passenger_preferences: extractedData?.passenger_preferences || null,
+        },
+        trip_card: message.tripCard,
+        trip_guide: message.tripGuide,
+        submitted: message.submitted,
+        checkout_required: message.checkoutRequired,
+        rate_limit_exceeded: false,
+        client_message: message.clientMessage,
+        message_id: message.id,
+        created_at: message.createdAt,
+        updated_at: message.updatedAt,
+      };
+    });
   }
 
   /**
