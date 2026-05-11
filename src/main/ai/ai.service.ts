@@ -7,7 +7,7 @@ import { aiResponse } from 'src/config/ai/ai-response';
 
 @Injectable()
 export class AiService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async createAIResponse(createAiDto: CreateAiDto, userId: number) {
     const userExists = await this.prisma.user.findUnique({
@@ -18,19 +18,19 @@ export class AiService {
       throw new NotFoundException('User not found');
     }
 
-    const activeSubscriptionPlan = await this.prisma.userSubscription.findFirst(
-      {
-        where: {
-          userId: userId,
-        },
-      },
-    );
+    // const activeSubscriptionPlan = await this.prisma.userSubscription.findFirst(
+    //   {
+    //     where: {
+    //       userId: userId,
+    //     },
+    //   },
+    // );
 
-    if (!activeSubscriptionPlan) {
-      throw new NotFoundException(
-        'No active subscription plan found for the user',
-      );
-    }
+    // if (!activeSubscriptionPlan) {
+    //   throw new NotFoundException(
+    //     'No active subscription plan found for the user',
+    //   );
+    // }
 
     const session = await this.prisma.aiSession.create({
       data: {
