@@ -9,10 +9,15 @@ import {
 } from 'class-validator';
 
 export class RegisterDto {
-  @ApiProperty({ example: 'John Doe' })
+  @ApiProperty({ example: 'John' })
   @IsString()
   @MinLength(2)
-  name!: string;
+  firstName!: string;
+
+  @ApiProperty({ example: 'Doe' })
+  @IsString()
+  @MinLength(2)
+  lastName!: string;
 
   @ApiProperty({ example: 'john@gmail.com' })
   @IsEmail()
