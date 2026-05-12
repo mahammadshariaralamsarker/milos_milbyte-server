@@ -121,29 +121,6 @@ export class AiService {
     } catch { }
 
     return aiResponseData;
-    // return {
-    //   session_id: session.sessionId,
-    //   user_id: String(userId),
-    //   ai_message: aiResponseData?.ai_message || '',
-    //   current_step: aiResponseData?.current_step || 'location',
-    //   parameters_extracted: {
-    //     location: aiResponseData?.parameters_extracted?.location || null,
-    //     start_date: aiResponseData?.parameters_extracted?.start_date || null,
-    //     end_date: aiResponseData?.parameters_extracted?.end_date || null,
-    //     travelers: aiResponseData?.parameters_extracted?.travelers || null,
-    //     budget: aiResponseData?.parameters_extracted?.budget || null,
-    //     experience: aiResponseData?.parameters_extracted?.experience || null,
-    //     citizenship: aiResponseData?.parameters_extracted?.citizenship || null,
-    //     passengers: aiResponseData?.parameters_extracted?.passengers || null,
-    //     passenger_preferences: aiResponseData?.parameters_extracted?.passenger_preferences || null,
-    //   },
-    //   trip_card: aiResponseData?.trip_cards || null,
-    //   trip_guide: aiResponseData?.trip_guide || null,
-    //   submitted: aiResponseData?.submitted ?? false,
-    //   checkout_required: aiResponseData?.checkout_required ?? false,
-    //   rate_limit_exceeded: aiResponseData?.rate_limit_exceeded ?? false,
-    //   message_id: message.id,
-    // };
   }
 
   async getAllSessions(userId: number) {
@@ -169,9 +146,9 @@ export class AiService {
       session_id: session.sessionId,
       created_at: session.createdAt,
       updated_at: session.updatedAt,
-      last_client_message:
+      first_client_message:
         session.messages.length > 0
-          ? session.messages[session.messages.length - 1].clientMessage
+          ? session.messages[0].clientMessage
           : null,
       last_ai_message:
         session.messages.length > 0

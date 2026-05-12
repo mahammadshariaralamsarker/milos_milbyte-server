@@ -8,6 +8,7 @@ import {
   Param,
   Put,
   Delete,
+  Patch,
 } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { CreateAiDto } from './dto/create-ai.dto';
@@ -27,7 +28,7 @@ import {
 @ApiTags('AI')
 @Controller('ai')
 export class AiController {
-  constructor(private readonly aiService: AiService) {}
+  constructor(private readonly aiService: AiService) { }
 
   /**
    * Create AI response (legacy - creates a new session and sends message)
@@ -100,5 +101,6 @@ export class AiController {
     return await this.aiService.deleteSession(req.user.sub, sessionId);
   }
 
-  // ===== Legacy Routes (for backward compatibility) =====
+
+
 }
