@@ -63,7 +63,7 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update current user profile' })
-  @Patch('me')
+  @Patch('update-profile')
   async profileUpdate(
     @Req() req: AuthenticatedRequest,
     @Body() updateData: UpdateProfileDto,
