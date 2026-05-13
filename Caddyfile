@@ -1,0 +1,21 @@
+solaraassistant.ai {
+
+  reverse_proxy /socket.io* app:3000
+
+  @api {
+    not path /socket.io*
+  }
+
+  handle @api {
+    request_body {
+      max_size 500MB
+    }
+
+    reverse_proxy app:3000 {
+      header_up X-Real-IP {remote}
+      header_up X-Forwarded-For {remote}
+      header_up X-Forwarded-Proto {scheme}
+      header_up Host {host}
+    }
+  }
+}

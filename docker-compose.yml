@@ -1,4 +1,32 @@
 services:
+
+
+
+caddy:
+    image: caddy
+    container_name: milos_server_caddy
+    restart: always
+    profiles:
+      - prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "caddy validate --config /etc/caddy/Caddyfile"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - milos-network
+
+
   postgres:
     image: postgres:16-alpine
     container_name: milos_milbyte_postgres
@@ -17,11 +45,7 @@ services:
       timeout: 5s
       retries: 10
 
-  app:
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
-    # image: milos-milbyte-server:local
+  app: 
     image: ${DOCKER_USERNAME}/milos-milbyte-server:latest
     container_name: milos_milbyte_api
     restart: unless-stopped
@@ -55,3 +79,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
