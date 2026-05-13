@@ -10,3 +10,12 @@ api.solaraassistant.ai {
     header_up Host {host}
   }
 }
+
+solaraassistant.ai, www.solaraassistant.ai {
+  reverse_proxy frontend-app-1:3040 {
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+    header_up Host {host}
+  }
+}
