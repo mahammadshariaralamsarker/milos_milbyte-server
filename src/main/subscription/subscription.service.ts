@@ -908,7 +908,6 @@ export class SubscriptionService {
         if (!subscriptionId) {
           break;
         }
-
         const stripeSubscription =
           await this.stripe.subscriptions.retrieve(subscriptionId);
 
