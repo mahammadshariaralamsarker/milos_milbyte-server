@@ -113,6 +113,68 @@ export class SubscriptionController {
     );
   }
 
+  @UseGuards(AuthGuard)
+  @Get('payment-methods')
+  @ApiOperation({ summary: 'Get current user payment methods from Stripe' })
+  @ApiBearerAuth()
+  async getPaymentMethods(@Req() req: AuthenticatedRequest) {
+    return await this.subscriptionService.getPaymentMethods(req.user.sub);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('payment-methods/setup-intent')
+  @ApiOperation({ summary: 'Create Stripe setup intent for adding a card' })
+  @ApiBearerAuth()
+  async createPaymentMethodSetupIntent(@Req() req: AuthenticatedRequest) {
+    return await this.subscriptionService.createPaymentMethodSetupIntent(
+      req.user.sub,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('payment-methods')
+  @ApiOperation({ summary: 'Add a new Stripe payment method for current user' })
+  @ApiBearerAuth()
+  async addPaymentMethod(
+    @Req() req: AuthenticatedRequest,
+    @Body() addPaymentMethodDto: AddPaymentMethodDto,
+  ) {
+    return await this.subscriptionService.addPaymentMethod(
+      req.user.sub,
+      addPaymentMethodDto,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('payment-methods/:paymentMethodId')
+  @ApiOperation({ summary: 'Update a Stripe payment method for current user' })
+  @ApiBearerAuth()
+  async updatePaymentMethod(
+    @Req() req: AuthenticatedRequest,
+    @Param('paymentMethodId') paymentMethodId: string,
+    @Body() updatePaymentMethodDto: UpdatePaymentMethodDto,
+  ) {
+    return await this.subscriptionService.updatePaymentMethod(
+      req.user.sub,
+      paymentMethodId,
+      updatePaymentMethodDto,
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete('payment-methods/:paymentMethodId')
+  @ApiOperation({ summary: 'Remove a Stripe payment method from current user' })
+  @ApiBearerAuth()
+  async removePaymentMethod(
+    @Req() req: AuthenticatedRequest,
+    @Param('paymentMethodId') paymentMethodId: string,
+  ) {
+    return await this.subscriptionService.removePaymentMethod(
+      req.user.sub,
+      paymentMethodId,
+    );
+  }
+
   // webhook endpoint for Stripe to handle subscription events (e.g. payment success, cancellation)
   @Post('webhook')
   @ApiOperation({ summary: 'Stripe webhook endpoint for subscription events' })

@@ -13,6 +13,8 @@ import {
   UpdateSubscriptionPlanDto,
   SubscribeUserDto,
   UpgradeSubscriptionDto,
+  AddPaymentMethodDto,
+  UpdatePaymentMethodDto,
 } from './dto/subscription.dto';
 import { SubscriptionStatus } from '@prisma/client';
 import { SubscriptionPeriodService } from '../subscription-period/subscription-period.service';
@@ -672,6 +674,161 @@ export class SubscriptionService {
       this.logger.error(`Cancel failed for user ${userId}`, error);
       throw error;
     }
+  }
+
+  private async setCustomerDefaultPaymentMethod(
+    customerId: string,
+    paymentMethodId: string | null,
+  ) {
+    await this.stripe.customers.update(customerId, {
+      invoice_settings: {
+        default_payment_method: paymentMethodId as any,
+      },
+    });
+  }
+
+  private async getCustomerDefaultPaymentMethod(customerId: string) {
+    const customer = await this.stripe.customers.retrieve(customerId);
+
+    if (!customer || 'deleted' in customer) {
+      return null;
+    }
+
+    return this.extractStripeId(
+      customer.invoice_settings?.default_payment_method,
+    );
+  }
+
+  async addPaymentMethod(
+    userId: number,
+    addPaymentMethodDto: AddPaymentMethodDto,
+  ) {
+    const { customerId } = await this.resolveStripeCustomer(userId);
+
+    const paymentMethod = await this.stripe.paymentMethods.attach(
+      addPaymentMethodDto.paymentMethodId,
+      {
+        customer: customerId,
+      },
+    );
+
+    if (addPaymentMethodDto.setAsDefault) {
+      await this.setCustomerDefaultPaymentMethod(
+        customerId,
+        addPaymentMethodDto.paymentMethodId,
+      );
+    }
+
+    return {
+      message: 'Payment method added successfully',
+      data: paymentMethod,
+    };
+  }
+
+  async createPaymentMethodSetupIntent(userId: number) {
+    const { customerId } = await this.resolveStripeCustomer(userId);
+
+    const setupIntent = await this.stripe.setupIntents.create({
+      customer: customerId,
+      usage: 'off_session',
+      payment_method_types: ['card'],
+    });
+
+    return {
+      message: 'Setup intent created successfully',
+      data: {
+        customerId,
+        setupIntentId: setupIntent.id,
+        clientSecret: setupIntent.client_secret,
+      },
+    };
+  }
+
+  async getPaymentMethods(userId: number) {
+    const { customerId } = await this.resolveStripeCustomer(userId);
+
+    const [paymentMethods, defaultPaymentMethod] = await Promise.all([
+      this.stripe.paymentMethods.list({
+        customer: customerId,
+        type: 'card',
+      }),
+      this.getCustomerDefaultPaymentMethod(customerId),
+    ]);
+
+    return {
+      message: 'Payment methods fetched successfully',
+      data: {
+        defaultPaymentMethod,
+        paymentMethods: paymentMethods.data,
+      },
+    };
+  }
+
+  async updatePaymentMethod(
+    userId: number,
+    paymentMethodId: string,
+    updatePaymentMethodDto: UpdatePaymentMethodDto,
+  ) {
+    const { customerId } = await this.resolveStripeCustomer(userId);
+
+    const defaultPaymentMethod =
+      await this.getCustomerDefaultPaymentMethod(customerId);
+
+    if (updatePaymentMethodDto.setAsDefault) {
+      await this.setCustomerDefaultPaymentMethod(customerId, paymentMethodId);
+    }
+
+    const paymentMethod = await this.stripe.paymentMethods.retrieve(
+      paymentMethodId,
+    );
+
+    return {
+      message: 'Payment method updated successfully',
+      data: {
+        paymentMethod,
+        previousDefaultPaymentMethod: defaultPaymentMethod,
+        currentDefaultPaymentMethod: updatePaymentMethodDto.setAsDefault
+          ? paymentMethodId
+          : defaultPaymentMethod,
+      },
+    };
+  }
+
+  async removePaymentMethod(userId: number, paymentMethodId: string) {
+    const { customerId } = await this.resolveStripeCustomer(userId);
+
+    const [paymentMethods, defaultPaymentMethod] = await Promise.all([
+      this.stripe.paymentMethods.list({
+        customer: customerId,
+        type: 'card',
+      }),
+      this.getCustomerDefaultPaymentMethod(customerId),
+    ]);
+
+    const remainingMethods = paymentMethods.data.filter(
+      (paymentMethod) => paymentMethod.id !== paymentMethodId,
+    );
+
+    if (defaultPaymentMethod === paymentMethodId) {
+      await this.setCustomerDefaultPaymentMethod(
+        customerId,
+        remainingMethods[0]?.id ?? null,
+      );
+    }
+
+    const detached = await this.stripe.paymentMethods.detach(paymentMethodId);
+
+    return {
+      message: 'Payment method removed successfully',
+      data: {
+        detached,
+        remainingPaymentMethods: remainingMethods,
+        currentDefaultPaymentMethod:
+          defaultPaymentMethod === paymentMethodId
+            ? remainingMethods[0]?.id ?? null
+            : defaultPaymentMethod,
+      },
+    };
   }
 
   async handleStripeWebhook(
