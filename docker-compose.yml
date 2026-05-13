@@ -1,8 +1,5 @@
 services:
-
-
-
-caddy:
+  caddy:
     image: caddy
     container_name: milos_server_caddy
     restart: always
@@ -26,7 +23,6 @@ caddy:
     networks:
       - milos-network
 
-
   postgres:
     image: postgres:16-alpine
     container_name: milos_milbyte_postgres
@@ -44,8 +40,10 @@ caddy:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - milos-network
 
-  app: 
+  app:
     image: ${DOCKER_USERNAME}/milos-milbyte-server:latest
     container_name: milos_milbyte_api
     restart: unless-stopped
@@ -54,6 +52,8 @@ caddy:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       PORT: 3000
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/milos_milbyte?schema=public
@@ -61,6 +61,14 @@ caddy:
       REDIS_PORT: 6379
     ports:
       - '3000:3000'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3000/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - milos-network
 
   redis:
     image: redis:7-alpine
@@ -75,6 +83,8 @@ caddy:
       retries: 10
     volumes:
       - redis_data:/data
+    networks:
+      - milos-network
 
 volumes:
   postgres_data:
@@ -83,3 +93,7 @@ volumes:
     driver: local
   caddy_config:
     driver: local
+
+networks:
+  milos-network:
+    driver: bridge

@@ -1,12 +1,10 @@
-solaraassistant.ai {
+api.solaraassistant.ai {
 
-  reverse_proxy /socket.io* app:3000
-
-  @api {
-    not path /socket.io*
+  handle /socket.io* {
+    reverse_proxy app:3000
   }
 
-  handle @api {
+  handle {
     request_body {
       max_size 500MB
     }
