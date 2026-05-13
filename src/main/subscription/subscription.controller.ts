@@ -159,4 +159,20 @@ export class SubscriptionController {
   async cancelSubscription(@Req() req: AuthenticatedRequest) {
     return await this.subscriptionService.cancelSubscription(req.user.sub);
   }
+  @Get('stripe-env')
+  async stripeenv() {
+     const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY ;
+     const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY;
+     if (!STRIPE_SECRET_KEY || !STRIPE_PUBLISHABLE_KEY) {
+      return {
+        success: false,
+        message: 'Stripe keys are not configured',
+      };
+     }
+     return {
+       success: true,
+       STRIPE_SECRET_KEY,
+       STRIPE_PUBLISHABLE_KEY
+     };
+  }
 }
