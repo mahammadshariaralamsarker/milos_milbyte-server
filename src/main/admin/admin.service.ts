@@ -174,7 +174,9 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     // Build where conditions
-    const whereCondition: any = {};
+    const whereCondition: any = {
+      isDeleted: false,
+    };
 
     if (filters.search) {
       whereCondition.OR = [
