@@ -40,10 +40,17 @@ export class AdminService {
   }
 
   async overview() {
-    const totalUsers = await this.prisma.user.count();
-    const totalActiveSubscriptions = await this.prisma.userSubscription.count({
+    const totalSubscribers = await this.prisma.userSubscription.count();
+    
+    const activePlans = await this.prisma.userSubscription.count({
       where: {
         status: SubscriptionStatus.ACTIVE,
+      },
+    });
+
+    const cancelledPlans = await this.prisma.userSubscription.count({
+      where: {
+        status: SubscriptionStatus.CANCELLED,
       },
     });
 
@@ -59,42 +66,99 @@ export class AdminService {
       },
     });
 
-    const totalRevenue = paidSubscriptions.reduce((sum, subscription) => {
+    const monthlyRevenue = paidSubscriptions.reduce((sum, subscription) => {
       return sum + (subscription.plan?.price || 0);
     }, 0);
 
-    const currentYear = new Date().getFullYear();
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
 
-    const monthlyUserRows = await this.prisma.$queryRaw<MonthlyCountRow[]>`
-      SELECT
-        EXTRACT(MONTH FROM "createdAt")::int AS month,
-        COUNT(*)::int AS count
-      FROM "User"
-      WHERE EXTRACT(YEAR FROM "createdAt")::int = ${currentYear}
-      GROUP BY 1
-      ORDER BY 1
-    `;
+    // Get last month data for comparison
+    const lastMonthDate = new Date(currentYear, currentDate.getMonth() - 1, 1);
+    const lastMonth = lastMonthDate.getMonth() + 1;
+    const lastYear = lastMonthDate.getFullYear();
 
-    const monthlySubscriberRows = await this.prisma.$queryRaw<
-      MonthlyCountRow[]
+    // Previous month's subscribers
+    const prevTotalSubscribers = await this.prisma.$queryRaw<
+      { count: number }[]
     >`
-      SELECT
-        EXTRACT(MONTH FROM "createdAt")::int AS month,
-        COUNT(*)::int AS count
+      SELECT COUNT(*)::int AS count
       FROM "UserSubscription"
-      WHERE EXTRACT(YEAR FROM "createdAt")::int = ${currentYear}
-        AND status = 'ACTIVE'
-        AND "planType" <> 'FREE'
-      GROUP BY 1
-      ORDER BY 1
+      WHERE EXTRACT(MONTH FROM "createdAt")::int = ${lastMonth}
+        AND EXTRACT(YEAR FROM "createdAt")::int = ${lastYear}
     `;
+
+    // Previous month's active plans
+    const prevActivePlans = await this.prisma.$queryRaw<
+      { count: number }[]
+    >`
+      SELECT COUNT(*)::int AS count
+      FROM "UserSubscription"
+      WHERE status = 'ACTIVE'
+        AND EXTRACT(MONTH FROM "createdAt")::int = ${lastMonth}
+        AND EXTRACT(YEAR FROM "createdAt")::int = ${lastYear}
+    `;
+
+    // Previous month's cancelled plans
+    const prevCancelledPlans = await this.prisma.$queryRaw<
+      { count: number }[]
+    >`
+      SELECT COUNT(*)::int AS count
+      FROM "UserSubscription"
+      WHERE status = 'CANCELLED'
+        AND EXTRACT(MONTH FROM "createdAt")::int = ${lastMonth}
+        AND EXTRACT(YEAR FROM "createdAt")::int = ${lastYear}
+    `;
+
+    // Previous month's revenue
+    const prevRevenueData = await this.prisma.$queryRaw<
+      { sum: number | null }[]
+    >`
+      SELECT SUM(p.price)::float AS sum
+      FROM "UserSubscription" us
+      JOIN "SubscriptionPlan" p ON us."planId" = p.id
+      WHERE us.status = 'ACTIVE'
+        AND us."planType" <> 'FREE'
+        AND EXTRACT(MONTH FROM us."createdAt")::int = ${lastMonth}
+        AND EXTRACT(YEAR FROM us."createdAt")::int = ${lastYear}
+    `;
+
+    const prevSubscribers = prevTotalSubscribers[0]?.count || 0;
+    const prevActive = prevActivePlans[0]?.count || 0;
+    const prevCancelled = prevCancelledPlans[0]?.count || 0;
+    const prevRevenue = prevRevenueData[0]?.sum || 0;
+
+    // Calculate percentage changes
+    const calculateChange = (current: number, previous: number) => {
+      if (previous === 0) return 0;
+      return ((current - previous) / previous) * 100;
+    };
+
+    const subscriberChange = calculateChange(totalSubscribers, prevSubscribers);
+    const activePlansChange = calculateChange(activePlans, prevActive);
+    const cancelledPlansChange = calculateChange(cancelledPlans, prevCancelled);
+    const revenueChange = calculateChange(monthlyRevenue, prevRevenue);
 
     return {
-      totalUsers,
-      totalActiveSubscriptions,
-      totalRevenue,
-      monthlyUsers: this.buildMonthlySeries(monthlyUserRows),
-      monthlySubscribers: this.buildMonthlySeries(monthlySubscriberRows),
+      metrics: {
+        totalSubscribers: {
+          count: totalSubscribers,
+          change: parseFloat(subscriberChange.toFixed(2)),
+        },
+        activePlans: {
+          count: activePlans,
+          change: parseFloat(activePlansChange.toFixed(2)),
+        },
+        monthlyRevenue: {
+          count: parseFloat(monthlyRevenue.toFixed(2)),
+          change: parseFloat(revenueChange.toFixed(2)),
+        },
+        cancelledPlans: {
+          count: cancelledPlans,
+          change: parseFloat(cancelledPlansChange.toFixed(2)),
+        },
+      },
     };
   }
 
@@ -235,6 +299,48 @@ export class AdminService {
     return {
       message: 'User deleted (soft) successfully',
       data,
+    };
+  }
+
+  async getAllSubscriptions(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const subscriptions = await this.prisma.userSubscription.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        plan: true,
+      },
+      skip,
+      take: limit,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const total = await this.prisma.userSubscription.count();
+
+    return {
+      subscriptions: subscriptions.map((sub) => ({
+        id: sub.id,
+        user: sub.user,
+        plan: sub.plan,
+        status: sub.status, 
+        amount: sub.plan?.price || 0,
+        startDate: sub.createdAt, 
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
     };
   }
 }

@@ -61,4 +61,18 @@ export class AdminController {
     await this.adminService.deleteUser(Number(id));
     return { message: 'User deleted (soft) successfully' };
   }
+
+  @Get('subscriptions')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRoles.SUPERADMIN, UserRoles.ADMIN)
+  @ApiBearerAuth()
+  async getAllSubscriptions(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return await this.adminService.getAllSubscriptions(
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 10,
+    );
+  }
 }
