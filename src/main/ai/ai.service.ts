@@ -86,8 +86,8 @@ export class AiService {
       message: sendMessageDto.message,
       session_id: session.sessionId,
       user_id: String(userId),
-      // subscription_plan: activeSubscriptionPlan.planType.toUpperCase(),
-      subscription_plan: 'pro',
+      subscription_plan: activeSubscriptionPlan.planType.toLowerCase(),
+      // subscription_plan: 'pro',
     };
 
     // Get AI response
