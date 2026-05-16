@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, HttpException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from 'src/config/prisma/prisma.service';
 import { CreateAiDto } from './dto/create-ai.dto';
@@ -93,7 +93,9 @@ export class AiService {
     // Get AI response
     const aiResponseData = await aiResponse(payload);
     if (aiResponseData.rate_limit_exceeded === true) {
-      throw new Error('Rate limit exceeded');
+      throw new HttpException(
+        'AI rate limit exceeded. Please try again later.', 429
+      );
     }
 
     // attach client message into the AI response payload
