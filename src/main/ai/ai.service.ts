@@ -94,7 +94,7 @@ export class AiService {
     const aiResponseData = await aiResponse(payload);
     if (aiResponseData.rate_limit_exceeded === true) {
       throw new HttpException(
-        'AI rate limit exceeded. Please try again later.', 429
+        'AI rate limit exceeded. Please please upgrade your subscription plan.', 429
       );
     }
 
