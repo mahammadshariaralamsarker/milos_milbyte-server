@@ -72,6 +72,7 @@ export class AiService {
     const activeSubscriptionPlan = await this.prisma.userSubscription.findFirst(
       {
         where: { userId },
+        include: { plan: true },
       },
     );
 
@@ -94,13 +95,18 @@ export class AiService {
     const aiResponseData = await aiResponse(payload);
     if (aiResponseData.rate_limit_exceeded === true) {
       throw new HttpException(
-        'AI rate limit exceeded. Please please upgrade your subscription plan.', 429
+        `You are currently on the ${activeSubscriptionPlan.plan.name} plan. You have reached the AI message limit. Please upgrade to continue using the AI assistant.`,
+        429,
       );
     }
 
     // attach client message into the AI response payload
     try {
       (aiResponseData as any).client_message = sendMessageDto.message;
+      (aiResponseData as any).current_plan = {
+        name: activeSubscriptionPlan.plan.name,
+        tier: activeSubscriptionPlan.planType,
+      };
     } catch { }
 
     const message = await this.prisma.aiMessage.create({
