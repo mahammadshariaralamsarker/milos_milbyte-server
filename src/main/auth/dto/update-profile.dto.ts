@@ -1,27 +1,36 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty,  } from '@nestjs/swagger';
+import { IsOptional } from 'class-validator';
 
 export class UpdateProfileDto {
-  @ApiPropertyOptional({ example: 'John' })
+  @ApiProperty({ example: 'John' })
+  @IsOptional()
   firstName?: string;
 
-  @ApiPropertyOptional({ example: 'Doe' })
+  @ApiProperty({ example: 'Doe' })
+  @IsOptional()
   lastName?: string;
 
-  @ApiPropertyOptional({ example: '+1234567890' })
+  @ApiProperty({ example: '+1234567890' })
+  @IsOptional()
   phoneNumber?: string;
 
-  @ApiPropertyOptional({ example: 'Banani 1/2  ' })
+  @ApiProperty({ example: 'Banani 1/2  ' })
+  @IsOptional()
   address?: string;
 
-  @ApiPropertyOptional({ example: 'Dhaka ' })
+  @ApiProperty({ example: 'Dhaka ' })
+  @IsOptional()
   city?: string;
 
-  @ApiPropertyOptional({ example: 'Gulsan  ' })
+  @ApiProperty({ example: 'Gulsan  ' })
+  @IsOptional()
   state?: string;
 
-  @ApiPropertyOptional({ example: '5620 ' })
+  @ApiProperty({ example: '5620 ' })
+  @IsOptional()
   zipCode?: string;
 
-  @ApiPropertyOptional({ example: 'Bangladesh ' })
+  @ApiProperty({ example: 'Bangladesh ' })
+  @IsOptional()
   country?: string;
 }
