@@ -12,6 +12,7 @@ import { SubscriptionModule } from './main/subscription/subscription.module';
 import { AdminModule } from './main/admin/admin.module';
 import { AiModule } from './main/ai/ai.module';
 import { HelpRequestModule } from './main/help-request/help-request.module';
+import { DuffelModule } from './main/duffel/duffel.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { HelpRequestModule } from './main/help-request/help-request.module';
     SubscriptionPeriodModule,
     AdminModule,
     AiModule,
+    DuffelModule,
   ],
   controllers: [AppController],
   providers: [AppService],
