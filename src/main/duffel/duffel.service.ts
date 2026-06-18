@@ -1,15 +1,29 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { CreateDuffelDto } from './dto/create-duffel.dto';
 import { UpdateDuffelDto } from './dto/update-duffel.dto';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-
+import { CreateOrderDto } from './dto/create-order.dto';
+import axios from 'axios';
+import { ConfigService } from '@nestjs/config';
 
 
 @Injectable()
 export class DuffelService {
-  constructor(private readonly httpService: HttpService) { }
-  async createSearchFlight(createDuffelDto: CreateDuffelDto) {
+  private readonly baseUrl = 'https://api.duffel.com';
+  private readonly headers;
+  constructor(private readonly httpService: HttpService, private configService: ConfigService) {
+    this.headers = {
+      'Accept-Encoding': 'gzip',
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Duffel-Version': 'v2',
+      'Authorization': `Bearer ${process.env.DUFFEL_API_KEY}`,
+    };
+  }
+  async createSearchFlight(createDuffelDto: CreateDuffelDto,
+
+  ) {
     const url = 'https://api.duffel.com/air/offer_requests';
     const payload = {
       data: {
@@ -19,22 +33,13 @@ export class DuffelService {
             destination: 'ATL',
             departure_date: '2026-07-21',
           },
-          {
-            origin: 'ATL',
-            destination: 'NYC',
-            departure_date: '2026-07-28',
-          },
+
         ],
         passengers: [
           {
             type: 'adult',
           },
-          {
-            type: 'adult',
-          },
-          {
-            age: 1,
-          },
+
         ],
         cabin_class: 'business',
       },
@@ -59,8 +64,47 @@ export class DuffelService {
     }
   }
 
-  async findAll() {
-    return `This action returns all duffel`;
+  async createOrder(createOrderDto: CreateOrderDto) {
+
+
+    const createOrderPayload = {
+      data: {
+        selected_offers: ['off_0000B7ScFqGNLDkRTh5yA3'], // must be an array
+        payments: [
+          {
+            three_d_secure_session_id: '3ds_0000AWr2XsTR1F1Vp34gh5',
+            currency: 'USD',
+            amount: '301.57',
+          },
+        ],
+        services: [{ quantity: 1, id: 'ase_00009hj8USM7Ncg31cB123' }],
+        type: 'instant',
+        passengers: [
+          {
+            id: 'pas_0000B7ScFqGNLDkRTh5yA3',
+            title: 'mr',
+            gender: 'male',
+            given_name: 'John',
+            family_name: 'Doe',
+            born_on: '1990-01-01',
+            email: 'john.doe@example.com',
+          },
+        ],
+      },
+    };
+
+
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}/air/orders`,
+        createOrderPayload,
+        { headers: this.headers },
+      );
+
+      console.log(response);
+    } catch (error) {
+      console.error('Error creating order:', error);
+    }
   }
 
   async findOne(id: number) {

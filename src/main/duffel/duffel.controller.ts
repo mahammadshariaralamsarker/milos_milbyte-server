@@ -6,10 +6,12 @@ import {
   Patch,
   Param,
   Delete,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { DuffelService } from './duffel.service';
 import { CreateDuffelDto } from './dto/create-duffel.dto';
-import { UpdateDuffelDto } from './dto/update-duffel.dto';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 @Controller('duffel')
 export class DuffelController {
@@ -20,23 +22,10 @@ export class DuffelController {
     return await this.duffelService.createSearchFlight(createDuffelDto);
   }
 
-  @Get()
-  findAll() {
-    return this.duffelService.findAll();
+  @Post('create-order')
+  @HttpCode(HttpStatus.CREATED)
+  async createOrder(@Body() createOrderDto: CreateOrderDto) {
+    return await this.duffelService.createOrder(createOrderDto);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.duffelService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDuffelDto: UpdateDuffelDto) {
-    return this.duffelService.update(+id, updateDuffelDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.duffelService.remove(+id);
-  }
 }
