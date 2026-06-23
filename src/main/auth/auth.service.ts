@@ -20,6 +20,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfilePictureDto } from './dto/update-profile-picture.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { MailService } from '../../config/mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -27,7 +28,8 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+    private readonly mailService: MailService,
+  ) { }
 
   // ================= REGISTER =================
 
@@ -46,7 +48,7 @@ export class AuthService {
       data: {
         email: registerDto.email,
         firstName: registerDto.firstName,
-        lastName: registerDto.lastName ,
+        lastName: registerDto.lastName,
         password: passwordHash,
         role: registerDto.role ?? UserRoles.CLIENT,
       },
@@ -189,23 +191,113 @@ export class AuthService {
     });
 
     if (!user) {
-      return {
-        message:
-          'If this email exists, a password reset link has been generated.',
-      };
+      throw new NotFoundException('User with this email does not exist');
     }
 
-    const resetToken = randomBytes(32).toString('hex');
-    const resetKey = this.getResetCacheKey(resetToken);
+    const otp = Math.floor(
+      100000 + Math.random() * 900000,
+    ).toString();
 
-    await this.cacheManager.set(resetKey, user.id, 15 * 60 * 1000);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        forgotPasswordOtp: otp,
+        forgotPasswordOtpExpiresAt: new Date(
+          Date.now() + 10 * 60 * 1000,
+        ),
+      },
+    });
+
+    // await this.mailService.sendMail({
+    //   to: email,
+    //   subject: 'Reset Password OTP',
+    //   html: `<h2>Your OTP is ${otp}</h2>`,
+    // });
 
     return {
-      message: 'Password reset link generated',
-      resetLink: `${this.getAppUrl()}/auth/reset-password?token=${resetToken}`,
-      expiresInMinutes: 15,
+      otp: otp,
+      message: 'OTP sent successfully.',
     };
   }
+  async verifyForgotPasswordOtp(
+    email: string,
+    otp: string,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (
+      !user.forgotPasswordOtp ||
+      !user.forgotPasswordOtpExpiresAt
+    ) {
+      throw new BadRequestException('OTP not found');
+    }
+
+    if (
+      user.forgotPasswordOtpExpiresAt < new Date()
+    ) {
+      throw new BadRequestException('OTP expired');
+    }
+
+    const matched = user.forgotPasswordOtp === otp;
+
+    if (!matched) {
+      throw new BadRequestException('Invalid OTP');
+    }
+    const resetToken = await this.jwtService.signAsync(
+      {
+        sub: user.id,
+        type: 'password-reset',
+      },
+      {
+        expiresIn: '15m',
+      },
+    );
+
+    return {
+      message: 'OTP verified successfully.Please provide your new password .',
+      resetToken,
+    };
+  }
+
+  async newPassword(
+    resetToken: string,
+    newPassword: string,
+  ) {
+    const payload =
+      await this.jwtService.verifyAsync(resetToken);
+
+    if (payload.type !== 'password-reset') {
+      throw new BadRequestException('Invalid token');
+    }
+
+    const password = await hash(
+      newPassword,
+      10,
+    );
+
+    await this.prisma.user.update({
+      where: {
+        id: payload.sub,
+      },
+      data: {
+        password,
+        forgotPasswordOtp: null,
+        forgotPasswordOtpExpiresAt: null,
+      },
+    });
+
+    return {
+      message: 'Password reset successful.',
+    };
+  }
+
+
 
   // ================= RESET PASSWORD =================
   async resetPassword(resetPasswordDto: ResetPasswordDto) {

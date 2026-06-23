@@ -16,6 +16,9 @@ model User {
   isBolocked       Boolean   @default(false)
   isDeleted        Boolean   @default(false)
 
+  forgotPasswordOtp          String?
+  forgotPasswordOtpExpiresAt DateTime?
+
   trips         String?
   points        Int                @default(0)
   totalSpent    Float              @default(0)

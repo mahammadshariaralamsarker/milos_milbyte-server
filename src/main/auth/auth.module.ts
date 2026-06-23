@@ -5,9 +5,11 @@ import { AuthController } from './auth.controller';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { DeployFilesModule } from '../../config/deploy-files/deploy-files.module';
+import { MailModule } from '../../config/mail/mail.module';
 
 @Module({
   imports: [
+    MailModule,
     DeployFilesModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'dev-secret-key',
@@ -20,4 +22,4 @@ import { DeployFilesModule } from '../../config/deploy-files/deploy-files.module
   providers: [AuthService, AuthGuard, RolesGuard],
   exports: [JwtModule],
 })
-export class AuthModule {}
+export class AuthModule { }

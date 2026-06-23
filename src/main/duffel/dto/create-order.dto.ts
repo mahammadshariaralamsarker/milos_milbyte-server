@@ -3,14 +3,14 @@ import { IsNotEmpty } from "class-validator";
 
 export class PassengerDto {
 
-    id: string;
-    title: string;
-    gender: string;
-    given_name: string;
-    family_name: string;
-    born_on: string;
-    email: string;
-    phone_number: string;
+    id!: string;
+    title!: string;
+    gender!: string;
+    given_name!: string;
+    family_name!: string;
+    born_on!: string;
+    email!: string;
+    phone_number!: string;
     identity_documents?: {
         type: string;
         unique_identifier: string;
@@ -21,28 +21,28 @@ export class PassengerDto {
 
 export class PaymentDto {
     three_d_secure_session_id?: string;
-    currency: string;
-    amount: string;
+    currency!: string;
+    amount!: string;
     type?: string;
 }
 
 export class ServiceDto {
-    quantity: number;
-    id: string;
+    quantity!: number;
+    id!: string;
 }
 
 export class CreateOrderDto {
     @ApiProperty({ example: ['offer_123', 'offer_456'] })
     @IsNotEmpty()
-    selected_offers: string[];
+    selected_offers!: string[];
 
     @ApiProperty()
     @IsNotEmpty()
-    payments: PaymentDto[];
+    payments!: PaymentDto[];
 
     @ApiProperty()
     @IsNotEmpty()
-    passengers: PassengerDto[];
+    passengers!: PassengerDto[];
 
     @ApiProperty()
     @IsNotEmpty()
@@ -50,5 +50,5 @@ export class CreateOrderDto {
 
     @ApiProperty({ example: 'instant' })
     @IsNotEmpty()
-    type: 'instant' | 'hold';
+    type!: 'instant' | 'hold';
 }

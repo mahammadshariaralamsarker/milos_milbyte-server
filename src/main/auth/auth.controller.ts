@@ -6,6 +6,8 @@ import {
   Patch,
   UseGuards,
   Req,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -19,6 +21,8 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UserRoles } from '@prisma/client';
+import { verifyForgotPasswordOtp } from './dto/verifyForgotPasswordOtp.dto';
+import { newPasswordDto } from './dto/newPassword.dto';
 
 type AuthenticatedRequest = Request & {
   user: {
@@ -31,7 +35,7 @@ type AuthenticatedRequest = Request & {
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   // ================= REGISTER =================
   @ApiTags('Public')
@@ -101,6 +105,7 @@ export class AuthController {
     );
   }
 
+  // ================= FORGOT  PASSWORD =================
   @ApiTags('Public')
   @ApiOperation({ summary: 'Send forgot password request' })
   @Post('forgot-password')
@@ -108,6 +113,30 @@ export class AuthController {
     return await this.authService.forgotPassword(forgotPasswordDto);
   }
 
+  @Post('verify-forgot-password-otp')
+  @HttpCode(HttpStatus.OK)
+  async verifyForgotPasswordOtp(
+    @Body() body: verifyForgotPasswordOtp,
+  ) {
+    return await this.authService.verifyForgotPasswordOtp(
+      body.email,
+      body.otp,
+    );
+  }
+  @Post('new-password')
+  @HttpCode(HttpStatus.OK)
+  async newPassword(
+    @Body()
+    body: newPasswordDto,
+  ) {
+    return await this.authService.newPassword(
+      body.resetToken,
+      body.password,
+    );
+  }
+
+
+  // ================= RESET PASSWORD =================
   @ApiTags('Public')
   @ApiOperation({ summary: 'Reset password using token' })
   @Post('reset-password')
