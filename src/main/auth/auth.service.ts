@@ -1,17 +1,13 @@
 import {
   BadRequestException,
   ConflictException,
-  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PlanTier, UserRoles } from '@prisma/client';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from '@nestjs/cache-manager';
 import { hash, compare } from 'bcryptjs';
-import { randomBytes } from 'crypto';
 import { PrismaService } from 'src/config/prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -19,15 +15,12 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { UpdateProfilePictureDto } from './dto/update-profile-picture.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { MailService } from '../../config/mail/mail.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-    private readonly mailService: MailService,
   ) { }
 
   // ================= REGISTER =================
