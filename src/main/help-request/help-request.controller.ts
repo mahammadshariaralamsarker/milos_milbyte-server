@@ -22,13 +22,13 @@ import { HelpRequestService } from './help-request.service';
 @ApiTags('Help Requests')
 @Controller('help-requests')
 export class HelpRequestController {
-  constructor(private readonly helpRequestService: HelpRequestService) {}
+  constructor(private readonly helpRequestService: HelpRequestService) { }
 
   @Post()
   @ApiTags('Public')
   @ApiOperation({ summary: 'Submit help request (public)' })
   async create(@Body() createHelpRequestDto: CreateHelpRequestDto) {
-    return this.helpRequestService.create(createHelpRequestDto);
+    return await this.helpRequestService.create(createHelpRequestDto);
   }
 
   @ApiTags('Admin')
@@ -38,7 +38,7 @@ export class HelpRequestController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all help requests (Admin only)' })
   async findAll() {
-    return this.helpRequestService.findAll();
+    return await this.helpRequestService.findAll();
   }
 
   @ApiTags('Admin')
@@ -48,7 +48,7 @@ export class HelpRequestController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get one help request (Admin only)' })
   async findOne(@Param('id') id: string) {
-    return this.helpRequestService.findOne(Number(id));
+    return await this.helpRequestService.findOne(Number(id));
   }
 
   @ApiTags('Admin')
@@ -61,7 +61,7 @@ export class HelpRequestController {
     @Param('id') id: string,
     @Body() updateHelpRequestDto: UpdateHelpRequestDto,
   ) {
-    return this.helpRequestService.update(Number(id), updateHelpRequestDto);
+    return await this.helpRequestService.update(Number(id), updateHelpRequestDto);
   }
 
   @ApiTags('Admin')
@@ -71,6 +71,6 @@ export class HelpRequestController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete help request (Admin only)' })
   async remove(@Param('id') id: string) {
-    return this.helpRequestService.remove(Number(id));
+    return await this.helpRequestService.remove(Number(id));
   }
 }
