@@ -298,30 +298,6 @@ export class AuthService {
   }
 
 
-
-  // ================= RESET PASSWORD =================
-  async resetPassword(resetPasswordDto: ResetPasswordDto) {
-    const resetKey = this.getResetCacheKey(resetPasswordDto.token);
-    const userId = await this.cacheManager.get<number>(resetKey);
-
-    if (!userId) {
-      throw new BadRequestException('Invalid or expired reset token');
-    }
-
-    const hashedPassword = await hash(resetPasswordDto.newPassword, 10);
-
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
-    });
-
-    await this.cacheManager.del(resetKey);
-
-    return {
-      message: 'Password reset successful',
-    };
-  }
-
   async profileUpdate(userId: string, updateData: UpdateProfileDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: Number(userId) },
@@ -359,15 +335,6 @@ export class AuthService {
     return safeUser;
   }
 
-  private getResetCacheKey(token: string) {
-    return `password-reset:${token}`;
-  }
 
-  private getAppUrl() {
-    return (
-      process.env.APP_URL ||
-      process.env.BASE_URL ||
-      `http://localhost:${process.env.PORT || '3000'}`
-    );
-  }
+
 }

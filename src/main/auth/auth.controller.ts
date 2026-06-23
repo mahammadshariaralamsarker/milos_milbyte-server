@@ -136,11 +136,5 @@ export class AuthController {
   }
 
 
-  // ================= RESET PASSWORD =================
-  @ApiTags('Public')
-  @ApiOperation({ summary: 'Reset password using token' })
-  @Post('reset-password')
-  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    return await this.authService.resetPassword(resetPasswordDto);
-  }
+
 }
