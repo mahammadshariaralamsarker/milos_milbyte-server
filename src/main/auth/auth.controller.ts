@@ -14,7 +14,6 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfilePictureDto } from './dto/update-profile-picture.dto';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -63,6 +62,8 @@ export class AuthController {
     return await this.authService.getMe(req.user.sub);
   }
 
+
+  // ================= UPDATE PROFILE =================
   @ApiTags('User')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
@@ -75,6 +76,8 @@ export class AuthController {
     return await this.authService.profileUpdate(req.user.sub, updateData);
   }
 
+
+  // ================= CHANGE PROFILE PICTURE =================
   @ApiTags('User')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
@@ -90,6 +93,7 @@ export class AuthController {
     );
   }
 
+  // ================= CHANGE PASSWORD =================
   @ApiTags('User')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()

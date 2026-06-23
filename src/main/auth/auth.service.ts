@@ -17,7 +17,6 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfilePictureDto } from './dto/update-profile-picture.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { MailService } from '../../config/mail/mail.service';
@@ -219,6 +218,7 @@ export class AuthService {
       message: 'OTP sent successfully.',
     };
   }
+
   async verifyForgotPasswordOtp(
     email: string,
     otp: string,
@@ -298,6 +298,7 @@ export class AuthService {
   }
 
 
+  // ================= UPDATE PROFILE =================
   async profileUpdate(userId: string, updateData: UpdateProfileDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: Number(userId) },
