@@ -24,3 +24,27 @@ enum HelpRequestStatus {
   RESOLVED
   CLOSED
 }
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+  CLOSED
+}
+
+enum DisputeCategory {
+  PAYMENT
+  BOOKING
+  REFUND
+  SERVICE
+  ACCOUNT
+  OTHER
+}
+
+enum DisputePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}

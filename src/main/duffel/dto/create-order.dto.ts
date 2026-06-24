@@ -36,13 +36,30 @@ export class PassengerDto {
 }
 
 export class PaymentDto {
+    @ApiProperty({ example: 'payment_123', description: 'Unique identifier for the payment' })
+    id!: string;
+
+    @ApiProperty({ example: 'card', description: 'Method of payment' })
+    method!: string;
+
+    @ApiProperty({ example: 'pm_123', description: 'Unique identifier for the payment method' })
+    payment_method_id!: string;
+
+    @ApiProperty({ example: 'session_123', description: 'Unique identifier for the 3D Secure session' })
     three_d_secure_session_id?: string;
+
+    @ApiProperty({ example: 'USD', description: 'Currency of the payment' })
     currency!: string;
+
+    @ApiProperty({ example: '100.00', description: 'Amount of the payment' })
     amount!: string;
+
+    @ApiProperty({ example: 'single', description: 'Type of the payment' })
     type?: string;
 }
 
 export class ServiceDto {
+
     quantity!: number;
     id!: string;
 }

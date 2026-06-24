@@ -13,6 +13,7 @@ import { AdminModule } from './main/admin/admin.module';
 import { AiModule } from './main/ai/ai.module';
 import { HelpRequestModule } from './main/help-request/help-request.module';
 import { DuffelModule } from './main/duffel/duffel.module';
+import { DisputeModule } from './main/dispute/dispute.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { DuffelModule } from './main/duffel/duffel.module';
     AdminModule,
     AiModule,
     DuffelModule,
+    DisputeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

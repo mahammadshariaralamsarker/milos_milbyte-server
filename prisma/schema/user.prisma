@@ -24,6 +24,7 @@ model User {
   totalSpent    Float              @default(0)
   subscriptions UserSubscription[]
   aiSessions    AiSession[]
+  disputes      Dispute[]
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 }
