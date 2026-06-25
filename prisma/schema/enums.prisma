@@ -48,3 +48,15 @@ enum DisputePriority {
   HIGH
   URGENT
 }
+
+enum BookingType {
+  ONE_WAY
+  ROUND_TRIP
+  MULTI_CITY
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}

@@ -12,8 +12,9 @@ import { SubscriptionModule } from './main/subscription/subscription.module';
 import { AdminModule } from './main/admin/admin.module';
 import { AiModule } from './main/ai/ai.module';
 import { HelpRequestModule } from './main/help-request/help-request.module';
-import { DuffelModule } from './main/duffel/duffel.module';
 import { DisputeModule } from './main/dispute/dispute.module';
+
+import { FlightModule } from './main/flight/flight.module';
 
 @Module({
   imports: [
@@ -28,10 +29,10 @@ import { DisputeModule } from './main/dispute/dispute.module';
     SubscriptionPeriodModule,
     AdminModule,
     AiModule,
-    DuffelModule,
     DisputeModule,
+    FlightModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
