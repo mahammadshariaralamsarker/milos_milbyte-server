@@ -13,7 +13,7 @@ import {
 
 @Injectable()
 export class DisputeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   // ─── USER: Create a new dispute ───────────────────────────────────────────
   async create(userId: number, createDisputeDto: CreateDisputeDto) {
