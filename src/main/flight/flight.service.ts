@@ -28,6 +28,51 @@ export class FlightService {
   }
 
   // ─────────────────────────────────────────────────────────────
+  // Private helper: parse & re-throw Duffel API errors as clean
+  // HttpExceptions with all field-level details included.
+  // ─────────────────────────────────────────────────────────────
+  private handleDuffelError(error: any, fallbackMessage: string): never {
+    const duffelErrors: Array<{ field?: string; source?: { field?: string; pointer?: string }; message: string; code?: string }> =
+      error?.response?.data?.errors;
+
+    if (duffelErrors?.length) {
+      const status = error.response.status as number;
+
+      // Map to a user-friendly structure
+      const details = duffelErrors.map((e) => ({
+        field: e.source?.field ?? e.field ?? null,
+        message: e.message,
+        code: e.code ?? null,
+      }));
+
+      // Single error → flat message; multiple → list them
+      const userMessage =
+        details.length === 1
+          ? details[0].message
+          : `${details.length} validation errors: ${details.map((d) => (d.field ? `[${d.field}] ${d.message}` : d.message)).join(' | ')}`;
+
+      this.logger.warn(`Duffel error (${status}): ${JSON.stringify(details)}`);
+
+      throw new HttpException(
+        {
+          statusCode: status,
+          error: 'Duffel API Error',
+          message: userMessage
+        },
+        status,
+      );
+    }
+
+    // Non-Duffel or network error
+    const message = error?.message ?? fallbackMessage;
+    this.logger.error(`${fallbackMessage}: ${message}`);
+    throw new HttpException(
+      { statusCode: HttpStatus.BAD_GATEWAY, error: 'Upstream Error', message },
+      HttpStatus.BAD_GATEWAY,
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
   // POST /flights/search
   // Calls Duffel /air/offer_requests and returns the list of offers
   // ─────────────────────────────────────────────────────────────
@@ -35,11 +80,12 @@ export class FlightService {
     try {
       this.logger.log(`Searching flights: ${JSON.stringify(dto.slices)}`);
 
+      // Note: origin/destination are already uppercased by the DTO @Transform
       const payload = {
         data: {
           slices: dto.slices.map((slice) => ({
-            origin: slice.origin.toUpperCase(),
-            destination: slice.destination.toUpperCase(),
+            origin: slice.origin,
+            destination: slice.destination,
             departure_date: slice.departure_date,
           })),
           passengers: dto.passengers,
@@ -85,11 +131,8 @@ export class FlightService {
         })),
       };
     } catch (error) {
-      this.logger.error('Flight search failed', error?.response?.data ?? error.message);
-      throw new HttpException(
-        error?.response?.data?.errors?.[0]?.message ?? 'Flight search failed',
-        error?.response?.status ?? HttpStatus.BAD_GATEWAY,
-      );
+      if (error instanceof HttpException) throw error;
+      this.handleDuffelError(error, 'Flight search failed');
     }
   }
 
@@ -129,11 +172,8 @@ export class FlightService {
         conditions: offer.conditions,
       };
     } catch (error) {
-      this.logger.error(`Offer fetch failed for ${offerId}`, error?.response?.data ?? error.message);
-      throw new HttpException(
-        error?.response?.data?.errors?.[0]?.message ?? 'Offer not found or expired',
-        error?.response?.status ?? HttpStatus.NOT_FOUND,
-      );
+      if (error instanceof HttpException) throw error;
+      this.handleDuffelError(error, `Offer fetch failed for ${offerId}`);
     }
   }
 
@@ -240,13 +280,8 @@ export class FlightService {
         },
       };
     } catch (error) {
-      // Re-throw HttpExceptions from passenger count check directly
       if (error instanceof HttpException) throw error;
-      this.logger.error('Flight booking failed', error?.response?.data ?? error.message);
-      throw new HttpException(
-        error?.response?.data?.errors?.[0]?.message ?? 'Flight booking failed',
-        error?.response?.status ?? HttpStatus.BAD_GATEWAY,
-      );
+      this.handleDuffelError(error, 'Flight booking failed');
     }
   }
 }

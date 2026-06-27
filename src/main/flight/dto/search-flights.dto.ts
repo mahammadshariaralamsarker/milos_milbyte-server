@@ -8,30 +8,39 @@ import {
   IsOptional,
   IsIn,
   ArrayMinSize,
+  Matches,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 
 export class PassengerDto {
   @ApiProperty({ example: 'adult', enum: ['adult', 'child', 'infant_without_seat'] })
   @IsString()
   @IsIn(['adult', 'child', 'infant_without_seat'])
-  type: 'adult' | 'child' | 'infant_without_seat';
+  type!: 'adult' | 'child' | 'infant_without_seat';
 }
 
 export class SliceDto {
-  @ApiProperty({ example: 'LHR', description: 'IATA airport code for origin' })
+  @ApiProperty({ example: 'LHR', description: 'Valid 3-letter IATA airport code for origin (e.g. DAC, LHR, JFK)' })
   @IsString()
   @IsNotEmpty()
-  origin: string;
+  // @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
+  // @Matches(/^[A-Z]{3}$/, {
+  //   message: 'origin must be a valid 3-letter IATA airport code (e.g. DAC, LHR, JFK)',
+  // })
+  origin!: string;
 
-  @ApiProperty({ example: 'JFK', description: 'IATA airport code for destination' })
+  @ApiProperty({ example: 'JFK', description: 'Valid 3-letter IATA airport code for destination (e.g. DAC, LHR, JFK)' })
   @IsString()
   @IsNotEmpty()
-  destination: string;
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
+  @Matches(/^[A-Z]{3}$/, {
+    message: 'destination must be a valid 3-letter IATA airport code (e.g. DAC, LHR, JFK)',
+  })
+  destination!: string;
 
   @ApiProperty({ example: '2026-09-01', description: 'Departure date in YYYY-MM-DD format' })
-  @IsDateString()
-  departure_date: string;
+  @IsDateString({}, { message: 'departure_date must be a valid date in YYYY-MM-DD format' })
+  departure_date!: string;
 }
 
 export class SearchFlightsDto {
@@ -40,14 +49,14 @@ export class SearchFlightsDto {
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => SliceDto)
-  slices: SliceDto[];
+  slices!: SliceDto[];
 
   @ApiProperty({ type: [PassengerDto] })
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => PassengerDto)
-  passengers: PassengerDto[];
+  passengers!: PassengerDto[];
 
   @ApiProperty({
     example: 'economy',
