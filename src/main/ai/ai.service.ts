@@ -82,7 +82,6 @@ export class AiService {
       );
     }
 
-    // Prepare payload for AI response
     const payload = {
       message: sendMessageDto.message,
       session_id: session.sessionId,
