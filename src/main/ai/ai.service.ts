@@ -93,12 +93,12 @@ export class AiService {
 
     // Get AI response
     const aiResponseData = await aiResponse(payload);
-    // if (aiResponseData.rate_limit_exceeded === true) {
-    //   throw new HttpException(
-    //     `You are currently on the ${activeSubscriptionPlan.plan.name} plan. You have reached the AI message limit. Please upgrade to continue using the AI assistant.`,
-    //     429,
-    //   );
-    // }
+    if (aiResponseData.rate_limit_exceeded === true) {
+      throw new HttpException(
+        `You are currently on the ${activeSubscriptionPlan.plan.name} plan. You have reached the AI message limit. Please upgrade to continue using the AI assistant.`,
+        429,
+      );
+    }
 
     // attach client message into the AI response payload
     try {
