@@ -26,7 +26,7 @@ export class PassengerDetailDto {
   })
   @IsString()
   @IsIn(['mr', 'ms', 'mrs', 'miss', 'dr'])
-  title: 'mr' | 'ms' | 'mrs' | 'miss' | 'dr';
+  title !: 'mr' | 'ms' | 'mrs' | 'miss' | 'dr';
 
   @ApiProperty({ example: 'John' })
   @IsString()
