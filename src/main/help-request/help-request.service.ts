@@ -40,6 +40,7 @@ export class HelpRequestService {
   }
 
   async findOne(id: number) {
+    this.logger.log(`Fetching help request with id ${id}`);
     const helpRequest = await this.prisma.helpRequest.findUnique({
       where: { id },
     });
@@ -55,29 +56,43 @@ export class HelpRequestService {
   }
 
   async update(id: number, updateHelpRequestDto: UpdateHelpRequestDto) {
-    await this.findOne(id);
+    this.logger.log(`Updating help request with id ${id}`);
+    const helpRequest = await this.prisma.helpRequest.findUnique({
+      where: { id },
+    });
 
+    if (!helpRequest) {
+      throw new NotFoundException('Help request not found');
+    }
+    this.logger.log(`Updating help request with id ${id} with data: ${JSON.stringify(updateHelpRequestDto)}`);
     const shouldSetResolvedAt =
       updateHelpRequestDto.status === HelpRequestStatus.RESOLVED ||
       updateHelpRequestDto.status === HelpRequestStatus.CLOSED;
 
-    const helpRequest = await this.prisma.helpRequest.update({
+    const updatedHelpRequest = await this.prisma.helpRequest.update({
       where: { id },
       data: {
         ...updateHelpRequestDto,
         resolvedAt: shouldSetResolvedAt ? new Date() : null,
       },
     });
-
+    this.logger.log(`Help request with id ${id} updated successfully`);
     return {
       message: 'Help request updated successfully',
-      helpRequest,
+      helpRequest: updatedHelpRequest,
     };
   }
 
   async remove(id: number) {
-    await this.findOne(id);
+    const helpRequest = await this.prisma.helpRequest.findUnique({
+      where: { id },
+    });
 
+    if (!helpRequest) {
+      throw new NotFoundException('Help request not found');
+    }
+
+    this.logger.log(`Deleting help request with id ${id}`);
     await this.prisma.helpRequest.delete({
       where: { id },
     });
