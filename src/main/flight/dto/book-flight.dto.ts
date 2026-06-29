@@ -17,7 +17,7 @@ export class PassengerDetailDto {
   @ApiProperty({ example: 'adult', enum: ['adult', 'child', 'infant_without_seat'] })
   @IsString()
   @IsIn(['adult', 'child', 'infant_without_seat'])
-  type: 'adult' | 'child' | 'infant_without_seat';
+  type!: 'adult' | 'child' | 'infant_without_seat';
 
   @ApiProperty({
     example: 'mr',
