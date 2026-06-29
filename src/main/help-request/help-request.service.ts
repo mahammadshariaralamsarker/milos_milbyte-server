@@ -97,6 +97,7 @@ export class HelpRequestService {
       where: { id },
     });
 
+    this.logger.log(`Help request with id ${id} deleted successfully`);
     return {
       message: 'Help request deleted successfully',
     };
