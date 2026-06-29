@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HelpRequestStatus } from '@prisma/client';
 import { PrismaService } from 'src/config/prisma/prisma.service';
 import {
@@ -8,9 +8,11 @@ import {
 
 @Injectable()
 export class HelpRequestService {
-  constructor(private readonly prisma: PrismaService) {}
+  logger = new Logger(HelpRequestService.name);
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(createHelpRequestDto: CreateHelpRequestDto) {
+    this.logger.log(`Creating help request for ${createHelpRequestDto.email}`);
     const helpRequest = await this.prisma.helpRequest.create({
       data: {
         name: createHelpRequestDto.name,
@@ -19,7 +21,7 @@ export class HelpRequestService {
         message: createHelpRequestDto.message,
       },
     });
-
+    this.logger.log(`Help request created for ${createHelpRequestDto.email}`);
     return {
       message: 'Help request submitted successfully',
       helpRequest,
